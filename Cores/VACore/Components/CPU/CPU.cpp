@@ -67,22 +67,34 @@ Moira::sync(int cycles)
     }
 }
 
+// Passes a data access to the memory observer of the CPU (if there is one)
+// and returns the value to use. Accesses to the program space (instruction
+// fetches and PC-relative operands) are not passed on.
+static inline u32
+observe(const CPU *cpu, u8 fc, u32 addr, u32 value, isize size, bool write)
+{
+    if (cpu->memoryObserver && fc == FC::USER_DATA) [[unlikely]] {
+        return cpu->memoryObserver(cpu->memoryObserverContext, addr, value, size, write);
+    }
+    return value;
+}
+
 u8
 Moira::read8(u32 addr) const
 {
-    return mem.peek8<Accessor::CPU>(addr);
+    return u8(observe((const CPU *)this, fcl, addr, mem.peek8<Accessor::CPU>(addr), 1, false));
 }
 
 u16
 Moira::read16(u32 addr) const
 {
-    return mem.peek16<Accessor::CPU>(addr);
+    return u16(observe((const CPU *)this, fcl, addr, mem.peek16<Accessor::CPU>(addr), 2, false));
 }
 
 u32
 Moira::read32(u32 addr) const
 {
-    return mem.peek32<Accessor::CPU>(addr);
+    return observe((const CPU *)this, fcl, addr, mem.peek32<Accessor::CPU>(addr), 4, false);
 }
 
 u16
@@ -108,6 +120,7 @@ Moira::write8(u32 addr, u8 val) const
     if CONSTEXPR (LOG_XFILES != LOG_OFF) {
         if (addr - reg.pc < 5) xfiles("write8 close to PC %x\n", reg.pc);
     }
+    val = u8(observe((const CPU *)this, fcl, addr, val, 1, true));
     mem.poke8 <Accessor::CPU> (addr, val);
 }
 
@@ -117,6 +130,7 @@ Moira::write16(u32 addr, u16 val) const
     if CONSTEXPR (LOG_XFILES != LOG_OFF) {
         if (addr - reg.pc < 5) xfiles("write16 close to PC %x\n", reg.pc);
     }
+    val = u16(observe((const CPU *)this, fcl, addr, val, 2, true));
     mem.poke16 <Accessor::CPU> (addr, val);
 }
 
@@ -126,6 +140,7 @@ Moira::write32(u32 addr, u32 val) const
     if CONSTEXPR (LOG_XFILES != LOG_OFF) {
         if (addr - reg.pc < 5) xfiles("write32 close to PC %x\n", reg.pc);
     }
+    val = u32(observe((const CPU *)this, fcl, addr, val, 4, true));
     mem.poke32 <Accessor::CPU> (addr, val);
 }
 

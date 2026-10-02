@@ -23,6 +23,25 @@ class CPU : public moira::Moira
 {
     friend class Moira;
 
+public:
+
+    /* An optional observer of the data accesses of the CPU, for debuggers
+     * and scripting frontends. The function is called on the emulator thread
+     * for every byte, word or long word the CPU reads from or writes to
+     * memory. Accesses to the program space (instruction fetches and
+     * PC-relative operands) are not reported. It is given the address,
+     * the value which was read or is about to be written, the size in bytes
+     * and the direction, and returns the value to use: a read returns it to
+     * the CPU, and a write stores it. Returning the value as it came changes
+     * nothing. The observer is not part of the state and is not copied to the
+     * run-ahead instance.
+     */
+    typedef u32 MemoryObserver(void *context, u32 addr, u32 value, isize size, bool write);
+    MemoryObserver *memoryObserver = nullptr;
+    void *memoryObserverContext = nullptr;
+
+private:
+
     Descriptions descriptions = {{
 
         .type           = Class::CPU,

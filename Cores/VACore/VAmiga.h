@@ -523,6 +523,9 @@ class GuardsAPI : public API {
     
 public:
 
+    // The guard list this API operates on
+    GuardType type = GuardType::BREAKPOINT;
+
     class GuardList *guards = nullptr;
     
     /** @brief  Returns the number of guards in the guard list.
@@ -620,29 +623,33 @@ public:
      */
     void clearLog();
 
-    /** @brief  Disassembles a recorded instruction from the log buffer
-     *  @param  i       Index of the instruction in the record buffer
-     *  @param  len     Length of the instruction in bytes (disassembleRecordedInstr),
-     *                  or number of words to show (disassembleRecordedWords).
+    /** @brief  Disassembles an instruction.
+     *  @param  addr    Address of the instruction to disassemble
+     *  @param  fmt     String defining the output format. The directives are
+     *                  %p (address), %b (instruction words), %i (instruction),
+     *                  %f (status register flags), %Nd (data register DN) and
+     *                  %Na (address register AN, N = 0 ... 7). A number in
+     *                  front of %p, %b, %i, or %f pads the output with spaces
+     *                  to the given width. The register directives show the
+     *                  current register contents.
+     *  @param  len     If given, receives the length of the instruction in bytes.
      *  @return The disassembled text.
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the format string is invalid.
      */
-    string disassembleRecordedInstr(isize i, isize *len);
-    string disassembleRecordedWords(isize i, isize len);
-    string disassembleRecordedFlags(isize i);
-    string disassembleRecordedPC(isize i);
+    string disassemble(u32 addr, const string &fmt, isize *len = nullptr) const;
 
-    /** @brief  Disassembles the instruction at the specified address
-     *  @param  addr    Address of the instruction
-     *  @param  len     Length of the instruction in bytes (disassembleInstr),
-     *                  or number of words to show (disassembleWords).
+    /** @brief  Disassembles an instruction from the log buffer.
+     *  @param  nr      Index of the instruction in the record buffer
+     *  @param  fmt     String defining the output format (see disassemble()).
+     *                  The register directives show the register contents at
+     *                  the time the instruction was recorded.
+     *  @param  len     If given, receives the length of the instruction in bytes.
      *  @return The disassembled text.
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the format string is invalid.
      */
-    string disassembleWord(u16 value);
-    string disassembleAddr(u32 addr);
-    string disassembleInstr(u32 addr, isize *len);
-    string disassembleWords(u32 addr, isize len);
+    string disassembleRecorded(isize nr, const string &fmt, isize *len = nullptr) const;
 
-    string vectorName(isize i);
+    string vectorName(isize i) const;
 };
 
 class CPUAPI : public API {
@@ -2040,12 +2047,12 @@ public:
     const RetroShellInfo &getInfo() const;
     const RetroShellInfo &getCachedInfo() const;
 
-    /** @brief  Returns a pointer to the text buffer.
+    /** @brief  Returns a copy of the text buffer.
      *  The text buffer contains the complete contents of the console. It
      *  will be expanded when new output is generated. When the buffer
      *  grows too large, old contents is cropped.
      */
-    const char *text();
+    string text() const;
 
     /// @}
     /// @name Typing characters and strings

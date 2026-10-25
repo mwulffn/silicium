@@ -10,6 +10,7 @@
 #pragma once
 
 #include "GuardListTypes.h"
+#include "CmdQueueTypes.h"
 #include "MoiraDebugger.h"
 
 namespace vamiga {
@@ -34,6 +35,9 @@ protected:
     // This guard list is used if no custom list is provided in the constructor
     moira::Guards _guards;
 
+    // The kind of guards managed by this list
+    GuardType type;
+
     // Indicates if active guards are present
     bool needsCheck = false;
 
@@ -44,8 +48,8 @@ protected:
 
 public:
 
-    GuardList(Amiga &amiga) : amiga(amiga), guards(_guards) { }
-    GuardList(Amiga &amiga, moira::Guards &guards) : amiga(amiga), guards(guards) { }
+    GuardList(Amiga &amiga, GuardType type) : amiga(amiga), guards(_guards), type(type) { }
+    GuardList(Amiga &amiga, moira::Guards &guards, GuardType type) : amiga(amiga), guards(guards), type(type) { }
     virtual ~GuardList() { }
 
 
@@ -100,6 +104,9 @@ public:
     void toggleAt(u32 target);
 
     void ignore(isize nr, isize count);
+
+    // Carries out a command of type GUARD_xxx
+    void processCommand(const Command &cmd);
 
 
     //

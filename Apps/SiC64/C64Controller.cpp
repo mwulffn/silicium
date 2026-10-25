@@ -411,8 +411,7 @@ C64Controller::warpToCenter()
 QString
 C64Controller::getRetroShellText()
 {
-    auto *text = core().retroShell.text();
-    return QString::fromUtf8(text);
+    return QString::fromStdString(core().retroShell.text());
 }
 
 int
@@ -1270,9 +1269,8 @@ C64Controller::process(const Message &msg, const string &attachment, std::except
             break;
         }
 
-        case Msg::BREAKPOINT_UPDATED:
+        case Msg::GUARD_UPDATED:
         case Msg::BREAKPOINT_REACHED:
-        case Msg::WATCHPOINT_UPDATED:
         case Msg::WATCHPOINT_REACHED:
         case Msg::CPU_JUMPED: {
 

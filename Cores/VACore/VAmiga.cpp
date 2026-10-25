@@ -330,85 +330,85 @@ GuardsAPI::guardAt(u32 target) const
 void
 GuardsAPI::setAt(u32 target, isize ignores)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_SET_AT, (void *)guards, target, ignores));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_SET_AT, GuardCmd { .list = type, .addr = target, .ignores = ignores }));
 }
 
 void
 GuardsAPI::moveTo(isize nr, u32 newTarget)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_MOVE_NR, (void *)guards, nr, newTarget));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_MOVE_NR, GuardCmd { .list = type, .nr = nr, .addr = newTarget }));
 }
 
 void
 GuardsAPI::remove(isize nr)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_REMOVE_NR, (void *)guards, nr));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_REMOVE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::removeAt(u32 target)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_REMOVE_AT, (void *)guards, target));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_REMOVE_AT, GuardCmd { .list = type, .addr = target }));
 }
 
 void
 GuardsAPI::removeAll()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_REMOVE_ALL, (void *)guards));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_REMOVE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::enable(isize nr)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_ENABLE_NR, (void *)guards, nr));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_ENABLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::enableAt(u32 target)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_ENABLE_AT, (void *)guards, target));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_ENABLE_AT, GuardCmd { .list = type, .addr = target }));
 }
 
 void
 GuardsAPI::enableAll()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_ENABLE_ALL, (void *)guards));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_ENABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::disable(isize nr)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_DISABLE_NR, (void *)guards, nr));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_DISABLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::disableAt(u32 target)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_DISABLE_AT, (void *)guards, target));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_DISABLE_AT, GuardCmd { .list = type, .addr = target }));
 }
 
 void
 GuardsAPI::disableAll()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    emu->put(Command(Cmd::GUARD_DISABLE_ALL));
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_DISABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::toggle(isize nr)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    guards->toggle(nr);
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_TOGGLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 isize
@@ -426,65 +426,23 @@ CPUDebuggerAPI::clearLog()
 }
 
 string
-CPUDebuggerAPI::disassembleRecordedInstr(isize i, isize *len)
+CPUDebuggerAPI::disassemble(u32 addr, const string &fmt, isize *len) const
 {
     VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleRecordedInstr(i, len));
+    return cpu->disass(fmt, addr, len);
 }
 
 string
-CPUDebuggerAPI::disassembleRecordedWords(isize i, isize len)
+CPUDebuggerAPI::disassembleRecorded(isize nr, const string &fmt, isize *len) const
 {
     VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleRecordedWords(i, len));
+    return cpu->disassRecorded(fmt, nr, len);
 }
 
 string
-CPUDebuggerAPI::disassembleRecordedFlags(isize i)
+CPUDebuggerAPI::vectorName(isize i) const
 {
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleRecordedFlags(i));
-}
-
-string
-CPUDebuggerAPI::disassembleRecordedPC(isize i)
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleRecordedPC(i));
-}
-
-string
-CPUDebuggerAPI::disassembleWord(u16 value)
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleWord(value));
-}
-
-string
-CPUDebuggerAPI::disassembleAddr(u32 addr)
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleAddr(addr));
-}
-
-string
-CPUDebuggerAPI::disassembleInstr(u32 addr, isize *len)
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleInstr(addr, len));
-}
-
-string
-CPUDebuggerAPI::disassembleWords(u32 addr, isize len)
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return string(cpu->disassembleWords(addr, len));
-}
-
-string
-CPUDebuggerAPI::vectorName(isize i)
-{
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     return cpu->debugger.vectorName(u8(i));
 }
 
@@ -1419,7 +1377,7 @@ HardDriveAPI::setFlag(DiskFlags mask, bool value)
 std::vector<std::tuple<isize,isize,isize>>
 HardDriveAPI::geometries(isize numBlocks) const
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     return GeometryDescriptor::driveGeometries(numBlocks);
 }
 
@@ -1894,11 +1852,11 @@ RetroShellAPI::getCachedInfo() const
     return retroShell->info.backed();
 }
 
-const char *
-RetroShellAPI::text()
+string
+RetroShellAPI::text() const
 {
     VAMIGA_PUBLIC_SUSPEND
-    return retroShell->text();
+    return string(retroShell->text());
 }
 
 void
@@ -2039,8 +1997,10 @@ VAmiga::VAmiga() {
     cpu.debugger.cpu = &emu->main.cpu;
     cpu.breakpoints.emu = emu;
     cpu.breakpoints.guards = &emu->main.cpu.breakpoints;
+    cpu.breakpoints.type = GuardType::BREAKPOINT;
     cpu.watchpoints.emu = emu;
     cpu.watchpoints.guards = &emu->main.cpu.watchpoints;
+    cpu.watchpoints.type = GuardType::WATCHPOINT;
 
     denise.emu = emu;
     denise.denise = &emu->main.denise;
@@ -2131,6 +2091,7 @@ VAmiga::VAmiga() {
     // Misc
     copperBreakpoints.emu = emu;
     copperBreakpoints.guards = &emu->main.agnus.copper.debugger.breakpoints;
+    copperBreakpoints.type = GuardType::COPPER_BREAKPOINT;
 
     msgQueue.emu = emu;
     msgQueue.msgQueue = &emu->main.msgQueue;

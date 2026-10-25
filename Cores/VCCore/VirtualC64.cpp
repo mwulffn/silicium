@@ -100,7 +100,8 @@ VirtualC64::VirtualC64() {
     cpu.breakpoints.cpu = &emu->main.cpu;
     cpu.watchpoints.emu = emu;
     cpu.watchpoints.cpu = &emu->main.cpu;
-    cpu.watchpoints.watchpoints = true;
+    cpu.breakpoints.type = GuardType::BREAKPOINT;
+    cpu.watchpoints.type = GuardType::WATCHPOINT;
 
     cia1.emu = emu;
     cia1.cia = &emu->main.cia1;
@@ -949,28 +950,46 @@ CPUDebuggerAPI::setNumberFormat(DasmNumberFormat instrFormat, DasmNumberFormat d
     return cpu->disassembler.setNumberFormat(instrFormat, dataFormat);
 }
 
+// Throws an exception if a disassembler format string is invalid
+static void
+checkDisassemblyFormat(const string &fmt)
+{
+    for (usize i = 0; i < fmt.size(); i++) {
+
+        if (fmt[i] != '%') continue;
+
+        while (++i < fmt.size() && isdigit(fmt[i])) { }
+
+        if (i >= fmt.size()) throw CoreError(CoreError::OPT_INV_ARG, "A directive after %");
+        if (!strchr("lpaxysbif", fmt[i])) throw CoreError(CoreError::OPT_INV_ARG, "l, p, a, x, y, s, b, i, or f after %");
+    }
+}
+
 string
 CPUDebuggerAPI::disassemble(u16 addr, const string &fmt, isize *len) const
 {
     VC64_PUBLIC
+    checkDisassemblyFormat(fmt);
 
-    char buffer[256];
-    auto result = cpu->disassembler.disass(buffer, fmt.c_str(), addr);
+    // Each directive produces at most a few dozen characters
+    std::vector<char> buffer(32 * fmt.size() + 64);
+    auto result = cpu->disassembler.disass(buffer.data(), fmt.c_str(), addr);
     if (len) *len = result;
 
-    return string(buffer);
+    return string(buffer.data());
 }
 
 string
 CPUDebuggerAPI::disassembleRecorded(isize nr, const string &fmt, isize *len) const
 {
     VC64_PUBLIC
+    checkDisassemblyFormat(fmt);
 
-    char buffer[256];
-    auto result = cpu->debugger.disassRecorded(buffer, fmt.c_str(), nr);
+    std::vector<char> buffer(32 * fmt.size() + 64);
+    auto result = cpu->debugger.disassRecorded(buffer.data(), fmt.c_str(), nr);
     if (len) *len = result;
 
-    return string(buffer);
+    return string(buffer.data());
 }
 
 //
@@ -987,9 +1006,9 @@ guardInfo(const Guard *g)
 
 // Returns the guard list selected by the API
 static const peddle::Guards &
-guardList(const CPU *cpu, bool watchpoints)
+guardList(const CPU *cpu, GuardType type)
 {
-    if (watchpoints) return cpu->debugger.watchpoints;
+    if (type == GuardType::WATCHPOINT) return cpu->debugger.watchpoints;
     return cpu->debugger.breakpoints;
 }
 
@@ -997,105 +1016,105 @@ isize
 GuardsAPI::elements() const
 {
     VC64_PUBLIC
-    return guardList(cpu, watchpoints).elements();
+    return guardList(cpu, type).elements();
 }
 
 std::optional<GuardInfo>
 GuardsAPI::guardNr(isize nr) const
 {
     VC64_PUBLIC
-    return guardInfo(guardList(cpu, watchpoints).guardNr(nr));
+    return guardInfo(guardList(cpu, type).guardNr(nr));
 }
 
 std::optional<GuardInfo>
 GuardsAPI::guardAt(u32 addr) const
 {
     VC64_PUBLIC
-    return guardInfo(guardList(cpu, watchpoints).guardAt(addr));
+    return guardInfo(guardList(cpu, type).guardAt(addr));
 }
 
 void
 GuardsAPI::setAt(u32 addr, isize ignores)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_SET_AT : Cmd::BP_SET_AT, i64(addr), i64(ignores)));
+    emu->put(Command(Cmd::GUARD_SET_AT, GuardCmd { .list = type, .addr = addr, .ignores = ignores }));
 }
 
 void
 GuardsAPI::moveTo(isize nr, u32 addr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_MOVE_TO : Cmd::BP_MOVE_TO, i64(nr), i64(addr)));
+    emu->put(Command(Cmd::GUARD_MOVE_NR, GuardCmd { .list = type, .nr = nr, .addr = addr }));
 }
 
 void
 GuardsAPI::remove(isize nr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_NR : Cmd::BP_REMOVE_NR, i64(nr)));
+    emu->put(Command(Cmd::GUARD_REMOVE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::removeAt(u32 addr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_AT : Cmd::BP_REMOVE_AT, i64(addr)));
+    emu->put(Command(Cmd::GUARD_REMOVE_AT, GuardCmd { .list = type, .addr = addr }));
 }
 
 void
 GuardsAPI::removeAll()
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_ALL : Cmd::BP_REMOVE_ALL));
+    emu->put(Command(Cmd::GUARD_REMOVE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::enable(isize nr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_NR : Cmd::BP_ENABLE_NR, i64(nr)));
+    emu->put(Command(Cmd::GUARD_ENABLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::enableAt(u32 addr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_AT : Cmd::BP_ENABLE_AT, i64(addr)));
+    emu->put(Command(Cmd::GUARD_ENABLE_AT, GuardCmd { .list = type, .addr = addr }));
 }
 
 void
 GuardsAPI::enableAll()
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_ALL : Cmd::BP_ENABLE_ALL));
+    emu->put(Command(Cmd::GUARD_ENABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::disable(isize nr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_NR : Cmd::BP_DISABLE_NR, i64(nr)));
+    emu->put(Command(Cmd::GUARD_DISABLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::disableAt(u32 addr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_AT : Cmd::BP_DISABLE_AT, i64(addr)));
+    emu->put(Command(Cmd::GUARD_DISABLE_AT, GuardCmd { .list = type, .addr = addr }));
 }
 
 void
 GuardsAPI::disableAll()
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_ALL : Cmd::BP_DISABLE_ALL));
+    emu->put(Command(Cmd::GUARD_DISABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::toggle(isize nr)
 {
     VC64_PUBLIC
-    emu->put(Command(watchpoints ? Cmd::WP_TOGGLE_NR : Cmd::BP_TOGGLE_NR, i64(nr)));
+    emu->put(Command(Cmd::GUARD_TOGGLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 
@@ -1830,11 +1849,11 @@ RetroShellAPI::getCachedInfo() const
     return retroShell->info.backed();
 }
 
-const char *
-RetroShellAPI::text()
+string
+RetroShellAPI::text() const
 {
     VC64_PUBLIC_SUSPEND
-    return retroShell->text();
+    return string(retroShell->text());
 }
 
 void

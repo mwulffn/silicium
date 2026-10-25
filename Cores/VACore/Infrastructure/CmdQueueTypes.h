@@ -12,6 +12,7 @@
 #include "OptionTypes.h"
 #include "JoystickTypes.h"
 #include "KeyboardTypes.h"
+#include "GuardListTypes.h"
 #include "Aliases.h"
 
 namespace vamiga {
@@ -68,6 +69,7 @@ enum class Cmd : long
     GUARD_DISABLE_NR,       ///< Disable the n-th guard
     GUARD_DISABLE_AT,       ///< Disable the guard at an address
     GUARD_DISABLE_ALL,      ///< Disable all guards
+    GUARD_TOGGLE_NR,        ///< Toggle the n-th guard
     
     // Keyboard
     KEY_PRESS,              ///< Press a key on the Amiga keyboard
@@ -151,6 +153,7 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::GUARD_DISABLE_NR:      return "GUARD_DISABLE_NR";
             case Cmd::GUARD_DISABLE_AT:      return "GUARD_DISABLE_AT";
             case Cmd::GUARD_DISABLE_ALL:     return "GUARD_DISABLE_ALL";
+            case Cmd::GUARD_TOGGLE_NR:       return "GUARD_TOGGLE_NR";
                 
             case Cmd::KEY_PRESS:             return "KEY_PRESS";
             case Cmd::KEY_RELEASE:           return "KEY_RELEASE";
@@ -226,6 +229,16 @@ typedef struct
 }
 AlarmCmd;
 
+// The guard list to modify is identified by a GuardType
+typedef struct
+{
+    GuardType list;       // The guard list to modify
+    isize nr;           // Number of a guard in the list
+    u32 addr;           // Target of a guard
+    isize ignores;      // Ignore count
+}
+GuardCmd;
+
 struct Command
 {
     // Header
@@ -243,6 +256,7 @@ struct Command
         GamePadCmd action;
         CoordCmd coord;
         AlarmCmd alarm;
+        GuardCmd guard;
     };
 
     // Attached string (may be null)
@@ -256,6 +270,7 @@ struct Command
     Command(Cmd type, const GamePadCmd &cmd) : type(type), action(cmd) { }
     Command(Cmd type, const CoordCmd &cmd) : type(type), coord(cmd) { }
     Command(Cmd type, const AlarmCmd &cmd) : type(type), alarm(cmd) { }
+    Command(Cmd type, const GuardCmd &cmd) : type(type), guard(cmd) { }
 };
 
 }

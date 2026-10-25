@@ -26,9 +26,25 @@ SiAmCPUController::SiAmCPUController(SiAmController *parent)
     });
 }
 
+namespace {
+
+// Suspends the emulator thread for the lifetime of the object. The disassembler
+// calls suspend the thread on their own, but nested suspensions are cheap, so
+// holding one suspension around a whole table refresh saves a pause per row.
+struct Suspended {
+
+    const vamiga::VAmiga &api;
+
+    explicit Suspended(const vamiga::VAmiga &api) : api(api) { api.suspend(); }
+    ~Suspended() { api.resume(); }
+};
+
+}
+
 QVector<SiAmInstructionModel::Row>
 SiAmCPUController::disassembleWindow(quint32 base, quint32 pc0, int &pcRow) const
 {
+    Suspended suspended(SiAmController::core());
     auto &debugger = SiAmController::core().cpu.debugger;
     auto &breakpoints = SiAmController::core().cpu.breakpoints;
 
@@ -40,9 +56,9 @@ SiAmCPUController::disassembleWindow(quint32 base, quint32 pc0, int &pcRow) cons
     for (int i = 0; i < 256; i++) {
 
         isize len = 0;
-        auto instr = debugger.disassembleInstr(addr, &len);
-        auto words = debugger.disassembleWords(addr, len / 2);
-        auto addrStr = debugger.disassembleAddr(addr);
+        auto instr = debugger.disassemble(addr, "%i", &len);
+        auto words = debugger.disassemble(addr, "%b");
+        auto addrStr = debugger.disassemble(addr, "%p");
 
         int bp = 0;
         if (auto guard = breakpoints.guardAt(addr)) bp = guard->enabled ? 1 : 2;
@@ -86,6 +102,7 @@ SiAmCPUController::rebuildInstructions(quint32 pc0, bool allowReanchor)
 void
 SiAmCPUController::rebuildTrace()
 {
+    Suspended suspended(SiAmController::core());
     auto &debugger = SiAmController::core().cpu.debugger;
 
     QVector<SiAmTraceModel::Row> rows;
@@ -95,9 +112,9 @@ SiAmCPUController::rebuildTrace()
     for (isize i = 0; i < count; i++) {
 
         isize len = 0;
-        auto addrStr = debugger.disassembleRecordedPC(i);
-        auto instr = debugger.disassembleRecordedInstr(i, &len);
-        auto flags = debugger.disassembleRecordedFlags(i);
+        auto addrStr = debugger.disassembleRecorded(i, "%p");
+        auto instr = debugger.disassembleRecorded(i, "%i", &len);
+        auto flags = debugger.disassembleRecorded(i, "%f");
 
         SiAmTraceModel::Row row;
         row.addrValue = 0;

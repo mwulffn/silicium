@@ -303,8 +303,7 @@ SiAmController::setRetroShell(bool value)
 QString
 SiAmController::getRetroShellText()
 {
-    auto *text = core().retroShell.text();
-    return QString::fromUtf8(text);
+    return QString::fromStdString(core().retroShell.text());
 }
 
 int

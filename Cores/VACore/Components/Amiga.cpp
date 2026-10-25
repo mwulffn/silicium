@@ -1119,8 +1119,9 @@ Amiga::update(CmdQueue &queue)
                 case Cmd::GUARD_DISABLE_NR:
                 case Cmd::GUARD_DISABLE_AT:
                 case Cmd::GUARD_DISABLE_ALL:
+                case Cmd::GUARD_TOGGLE_NR:
 
-                    cpu.processCommand(cmd);
+                    guardList(cmd.guard.list).processCommand(cmd);
                     break;
 
                 case Cmd::KEY_PRESS:
@@ -1447,6 +1448,23 @@ Amiga::saveSnapshot(const fs::path &path)
 
     // Inform the GUI
     msgQueue.put(Msg::SNAPSHOT_SAVED);
+}
+
+GuardList &
+Amiga::guardList(GuardType type)
+{
+    switch (type) {
+
+        case GuardType::BREAKPOINT:      return cpu.breakpoints;
+        case GuardType::WATCHPOINT:      return cpu.watchpoints;
+        case GuardType::CATCHPOINT:      return cpu.catchpoints;
+        case GuardType::COPPER_BREAKPOINT:   return agnus.copper.debugger.breakpoints;
+        case GuardType::COPPER_WATCHPOINT:   return agnus.copper.debugger.watchpoints;
+        case GuardType::BEAMTRAP:            return agnus.debugger.beamtraps;
+
+        default:
+            fatalError;
+    }
 }
 
 void

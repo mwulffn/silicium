@@ -33,7 +33,7 @@
 //   - breakpoints / watchpoints: reuses SiAmGuardModel, the same generic
 //     guard-list model SiAmCopperController's Copper breakpoints already use
 //     (vAmiga's CPUAPI::breakpoints/watchpoints are GuardsAPI instances, the
-//     same type as AgnusAPI::copperBreakpoints).
+//     same type as CopperAPI::breakpoints).
 //
 // Register/flag/interrupt state (CPUInfo) is read from the shared info
 // controller (SiAmInfoController), like every other panel controller, but

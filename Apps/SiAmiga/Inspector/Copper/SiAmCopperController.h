@@ -29,7 +29,7 @@
 //     CopperInfo.
 //   - breakpoints: every currently-set Copper breakpoint, address only
 //     (see SiAmGuardModel) -- vAmiga tracks these on their own GuardsAPI
-//     instance (core().copperBreakpoints), independent of CPU
+//     instance (core().agnus.copper.breakpoints), independent of CPU
 //     breakpoints/watchpoints.
 //
 // The Swift reference's per-row breakpoint editing (click a list row's

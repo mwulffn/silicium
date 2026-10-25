@@ -78,7 +78,7 @@ void
 SiAmCopperController::rebuildList(quint32 start, quint32 end, bool symbolic, int extraRows, SiAmCopperListModel &model)
 {
     auto &core = SiAmController::core();
-    auto &breakpoints = core.copperBreakpoints;
+    auto &breakpoints = core.agnus.copper.breakpoints;
 
     int nativeLength = std::min(int((end - start) / 4), 500);
     int actualLength = nativeLength + extraRows;
@@ -111,7 +111,7 @@ SiAmCopperController::rebuildList(quint32 start, quint32 end, bool symbolic, int
 void
 SiAmCopperController::rebuildBreakpoints()
 {
-    auto &breakpoints = SiAmController::core().copperBreakpoints;
+    auto &breakpoints = SiAmController::core().agnus.copper.breakpoints;
 
     QVector<SiAmGuardModel::Row> rows;
     isize n = breakpoints.elements();
@@ -160,12 +160,12 @@ void
 SiAmCopperController::toggleBreakpoint1(int row)
 {
     quint32 addr = m_list1Model.addrAt(row);
-    auto &breakpoints = SiAmController::core().copperBreakpoints;
+    auto &breakpoints = SiAmController::core().agnus.copper.breakpoints;
     auto guard = breakpoints.guardAt(addr);
 
-    if (!guard.has_value()) breakpoints.setAt(addr);
-    else if (!guard->enabled) breakpoints.enableAt(addr);
-    else breakpoints.disableAt(addr);
+    if (!guard.has_value()) breakpoints.setAtAsync(addr);
+    else if (!guard->enabled) breakpoints.enableAtAsync(addr);
+    else breakpoints.disableAtAsync(addr);
 
     refresh();
 }
@@ -174,12 +174,12 @@ void
 SiAmCopperController::toggleBreakpoint2(int row)
 {
     quint32 addr = m_list2Model.addrAt(row);
-    auto &breakpoints = SiAmController::core().copperBreakpoints;
+    auto &breakpoints = SiAmController::core().agnus.copper.breakpoints;
     auto guard = breakpoints.guardAt(addr);
 
-    if (!guard.has_value()) breakpoints.setAt(addr);
-    else if (!guard->enabled) breakpoints.enableAt(addr);
-    else breakpoints.disableAt(addr);
+    if (!guard.has_value()) breakpoints.setAtAsync(addr);
+    else if (!guard->enabled) breakpoints.enableAtAsync(addr);
+    else breakpoints.disableAtAsync(addr);
 
     refresh();
 }
@@ -188,13 +188,13 @@ void
 SiAmCopperController::toggleGuardEnabled(int row)
 {
     quint32 addr = m_breakpointsModel.addrAt(row);
-    auto &breakpoints = SiAmController::core().copperBreakpoints;
+    auto &breakpoints = SiAmController::core().agnus.copper.breakpoints;
     auto guard = breakpoints.guardAt(addr);
 
     if (!guard.has_value()) return;
 
-    if (guard->enabled) breakpoints.disableAt(addr);
-    else breakpoints.enableAt(addr);
+    if (guard->enabled) breakpoints.disableAtAsync(addr);
+    else breakpoints.enableAtAsync(addr);
 
     refresh();
 }
@@ -203,7 +203,7 @@ void
 SiAmCopperController::removeGuard(int row)
 {
     quint32 addr = m_breakpointsModel.addrAt(row);
-    SiAmController::core().copperBreakpoints.removeAt(addr);
+    SiAmController::core().agnus.copper.breakpoints.removeAtAsync(addr);
 
     refresh();
 }
@@ -211,14 +211,14 @@ SiAmCopperController::removeGuard(int row)
 void
 SiAmCopperController::moveGuard(int row, int addr)
 {
-    SiAmController::core().copperBreakpoints.moveTo(row, (u32)addr);
+    SiAmController::core().agnus.copper.breakpoints.moveToAsync(row, (u32)addr);
     refresh();
 }
 
 void
 SiAmCopperController::addGuard(int addr)
 {
-    SiAmController::core().copperBreakpoints.setAt((u32)addr);
+    SiAmController::core().agnus.copper.breakpoints.setAtAsync((u32)addr);
     refresh();
 }
 

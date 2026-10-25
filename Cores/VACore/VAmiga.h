@@ -384,6 +384,148 @@ public:
     const BlitterInfo &getCachedInfo() const;
 };
 
+//
+// Guards (breakpoints, watchpoints, ...)
+//
+
+/** Guards API
+ *
+ *  Gives access to one list of guards (breakpoints, watchpoints, catchpoints, or beamtraps). The functions that modify the
+ *  list come in two flavors, following the usual scheme of the API:
+ *
+ *  - The plain functions (e.g., setAt()) return when the emulator thread has
+ *    carried out the request. A failure throws the corresponding exception
+ *    (e.g., if a guard to remove does not exist). They throw
+ *    CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot carry
+ *    out the request, because it has not been launched yet, is halted or
+ *    suspended, or if they are called from the emulator thread itself.
+ *  - The functions with the Async suffix (e.g., setAtAsync()) queue the
+ *    request and return at once. A failure is not reported to the caller.
+ *    The change shows up in the query functions only after the emulator
+ *    thread has carried it out (see sync()).
+ */
+class GuardsAPI : public API {
+
+    friend class VAmiga;
+    
+public:
+
+    // The guard list this API operates on
+    GuardType type = GuardType::BREAKPOINT;
+
+    class GuardList *guards = nullptr;
+    
+    /** @brief  Returns the number of guards in the guard list.
+     */
+    isize elements() const;
+
+    /** @brief  Returns information about a guard.
+     *  @param  nr      Number of the guard in the guard list
+     */
+    std::optional<GuardInfo> guardNr(isize nr) const;
+
+    /** @brief  Returns information about a guard.
+     *  @param  target  The target of the guard to query
+     */
+    std::optional<GuardInfo> guardAt(u32 target) const;
+
+    /** @brief  Sets a guard.
+     *  @param  target  The observed target. For breakpoints and watchpoints, the target is a memory address. For catchpoints, the target is a vector number (interrupts or traps).
+     *  @param  ignores If a value greater zero is given, the guard has to be hit the specified number of times until program execution is paused.
+     */
+    void setAt(u32 target, isize ignores = 0);
+
+    /// Asynchronous version of setAt(): queues the request and returns at once.
+    void setAtAsync(u32 target, isize ignores = 0);
+
+    /** @brief  Relocates a guard.
+     *  @param  nr      Number of the guard in the guard list
+     *  @param  target  New target
+     */
+    void moveTo(isize nr, u32 target);
+
+    /// Asynchronous version of moveTo(): queues the request and returns at once.
+    void moveToAsync(isize nr, u32 target);
+
+    /** @brief  Deletes a guard.
+     *  @param  nr      Number of the guard in the guard list
+     */
+    void remove(isize nr);
+
+    /// Asynchronous version of remove(): queues the request and returns at once.
+    void removeAsync(isize nr);
+
+    /** @brief  Deletes a guard.
+     *  @param  target  The target of the guard to be deleted.
+     */
+    void removeAt(u32 target);
+
+    /// Asynchronous version of removeAt(): queues the request and returns at once.
+    void removeAtAsync(u32 target);
+
+    /** @brief  Deletes all guards.
+     */
+    void removeAll();
+
+    /// Asynchronous version of removeAll(): queues the request and returns at once.
+    void removeAllAsync();
+
+    /** @brief  Enables a guard.
+     *  @param  nr      Number of the guard in the guard list
+     */
+    void enable(isize nr);
+
+    /// Asynchronous version of enable(): queues the request and returns at once.
+    void enableAsync(isize nr);
+
+    /** @brief  Enables a guard.
+     *  @param  target  The target of the guard to be enabled
+     */
+    void enableAt(u32 target);
+
+    /// Asynchronous version of enableAt(): queues the request and returns at once.
+    void enableAtAsync(u32 target);
+
+    /** @brief  Enables all guards.
+     */
+    void enableAll();
+
+    /// Asynchronous version of enableAll(): queues the request and returns at once.
+    void enableAllAsync();
+
+    /** @brief  Disables a guard.
+     *  @param  nr      Number of the guard in the guard list
+     */
+    void disable(isize nr);
+
+    /// Asynchronous version of disable(): queues the request and returns at once.
+    void disableAsync(isize nr);
+
+    /** @brief  Disables a guard.
+     *  @param  target  The target of the guard to be disabled
+     */
+    void disableAt(u32 target);
+
+    /// Asynchronous version of disableAt(): queues the request and returns at once.
+    void disableAtAsync(u32 target);
+
+    /** @brief  Disables all guards.
+     */
+    void disableAll();
+
+    /// Asynchronous version of disableAll(): queues the request and returns at once.
+    void disableAllAsync();
+
+    /** @brief  Enables a disabled guard and disables an enabled one.
+     *  @param  nr      Number of the guard in the guard list
+     */
+    void toggle(isize nr);
+
+    /// Asynchronous version of toggle(): queues the request and returns at once.
+    void toggleAsync(isize nr);
+
+};
+
 class CopperAPI : public API {
 
     friend class VAmiga;
@@ -391,6 +533,9 @@ class CopperAPI : public API {
 public:
 
     class Copper *copper = nullptr;
+
+    GuardsAPI breakpoints;
+    GuardsAPI watchpoints;
 
     /** @brief  Returns the component's current state.
      *
@@ -441,6 +586,7 @@ public:
     BlitterAPI blitter;
     XRayAPI xray;
     LogicAnalyzerAPI logicAnalyzer;
+    GuardsAPI beamtraps;
     
     /** @brief  Returns the component's current configuration.
      */
@@ -517,92 +663,6 @@ public:
 
 namespace moira { class Guards; class Debugger; }
 
-class GuardsAPI : public API {
-
-    friend class VAmiga;
-    
-public:
-
-    // The guard list this API operates on
-    GuardType type = GuardType::BREAKPOINT;
-
-    class GuardList *guards = nullptr;
-    
-    /** @brief  Returns the number of guards in the guard list.
-     */
-    isize elements() const;
-
-    /** @brief  Returns information about a guard.
-     *  @param  nr      Number of the guard in the guard list
-     */
-    std::optional<GuardInfo> guardNr(isize nr) const;
-
-    /** @brief  Returns information about a guard.
-     *  @param  target  The target of the guard to query
-     */
-    std::optional<GuardInfo> guardAt(u32 target) const;
-
-    /** @brief  Sets a guard.
-     *  @param  target  The observed target. For breakpoints and watchpoints,
-     *                  the target is a memory address. For catchpoints, the
-     *                  target is a vector number (interrupts or traps).
-     *  @param  ignores If a value greater zero is given, the guard has to
-     *                  to be hit the specified number of times until program
-     *                  execution is paused.
-     */
-    void setAt(u32 target, isize ignores = 0);
-
-    /** @brief  Relocates a guard.
-     *  @param  nr      Number of the guard in the guard list
-     *  @param  target  New target
-     */
-    void moveTo(isize nr, u32 target);
-
-    /** @brief  Deletes a guard.
-     *  @param  nr      Number of the guard in the guard list
-     */
-    void remove(isize nr);
-
-    /** @brief  Deletes a guard.
-     *  @param  target  The target of the guard to be deleted.
-     */
-    void removeAt(u32 target);
-
-    /** @brief  Deletes all guards.
-     */
-    void removeAll();
-
-    /** @brief  Enables a guard.
-     *  @param  nr      Number of the guard in the guard list
-     */
-    void enable(isize nr);
-
-    /** @brief  Enables a guard.
-     *  @param  target  The target of the guard to be deleted
-     */
-    void enableAt(u32 target);
-
-    /** @brief  Enables all guards.
-     */
-    void enableAll();
-
-    /** @brief  Disables a guard.
-     *  @param  nr      Number of the guard in the guard list
-     */
-    void disable(isize nr);
-
-    /** @brief  Disables a guard.
-     *  @param  target  The target of the guard to be deleted
-     */
-    void disableAt(u32 target);
-
-    /** @brief  Disables all guards.
-     */
-    void disableAll();
-    void toggle(isize nr);
-
-};
-
 class CPUDebuggerAPI : public API {
 
     friend class VAmiga;
@@ -663,6 +723,7 @@ public:
     CPUDebuggerAPI debugger;
     GuardsAPI breakpoints;
     GuardsAPI watchpoints;
+    GuardsAPI catchpoints;
 
     /** @brief  Returns the component's current configuration.
      */
@@ -1003,11 +1064,6 @@ public:
      */
     const FloppyDriveInfo &getInfo() const;
     const FloppyDriveInfo &getCachedInfo() const;
-
-    /** @brief  Getter for the raw disk object
-     *  @return A pointer to the disk object or nullptr if no disk is present.
-     */
-    class FloppyDisk &getDisk() const;
 
     /** @brief Queries a disk flag
      */
@@ -1566,11 +1622,23 @@ public:
     /// @name Visualizing waveforms
     /// @{
 
-    /** @brief  Draws a visual representation of the waveform.
-     *  The Mac app uses this function to visualize the contents of the
-     *  audio buffer in one of it's inspector panels. */
-    void drawL(u32 *buffer, isize width, isize height, u32 color) const;
-    void drawR(u32 *buffer, isize width, isize height, u32 color) const;
+    /** @brief  Draws the waveform of the left or the right audio channel.
+     *
+     *  The waveform is plotted into a texture buffer. The functions return the
+     *  highest amplitude found in the audio buffer. To implement auto-scaling,
+     *  pass the returned value as parameter 'maxAmp' in the next call. The
+     *  Mac app uses these functions to visualize the contents of the audio
+     *  buffer in one of its inspector panels.
+     *
+     *  @param  buffer  Texture buffer of size width * height
+     *  @param  width   Width of the texture in pixels
+     *  @param  height  Height of the texture in pixels
+     *  @param  maxAmp  Amplitude that is mapped to the full height
+     *  @param  color   Color of the waveform
+     *  @return The highest amplitude that was found.
+     */
+    float drawL(u32 *buffer, isize width, isize height, float maxAmp, u32 color) const;
+    float drawR(u32 *buffer, isize width, isize height, float maxAmp, u32 color) const;
 
     /// @}};
 };
@@ -1880,12 +1948,12 @@ public:
     i64 get(const string &key) const;
 
     /** @brief  Queries a key-value pair.
-     *  @param  option  A config option whose name is used as the prefix of the key.
+     *  @param  opt     A config option whose name is used as the prefix of the key.
      *  @param  nr      Optional number that is appened to the key as suffix.
      *  @result The value as an integer.
      *  @throw  CoreError (#ERROR\_INVALID\_KEY)
      */
-    i64 get(Opt option, isize nr = 0) const;
+    i64 get(Opt opt, isize nr = 0) const;
 
     /** @brief  Queries a fallback key-value pair.
      *  @param  key     The key.
@@ -1902,12 +1970,12 @@ public:
     i64 getFallback(const string &key) const;
 
     /** @brief  Queries a fallback key-value pair.
-     *  @param  option  A config option whose name is used as the key.
+     *  @param  opt     A config option whose name is used as the key.
      *  @param  nr      Optional number that is appened to the key as suffix.
      *  @result The value as an integer.
      *  @throw  CoreError (#ERROR\_INVALID\_KEY)
      */
-    i64 getFallback(Opt option, isize nr = 0) const;
+    i64 getFallback(Opt opt, isize nr = 0) const;
 
 
     /// @}
@@ -2001,17 +2069,17 @@ public:
     void remove(const string &key);
 
     /** @brief  Deletes a key-value pair
-     *  @param  option  The option's name forms the key.
+     *  @param  opt     The option's name forms the key.
      *  @throw  CoreError (#CoreError::INVALID_KEY)
      */
-    void remove(Opt option);
+    void remove(Opt opt);
 
     /** @brief  Deletes multiple key-value pairs.
-     *  @param  option  The option's name forms the prefix of the keys.
+     *  @param  opt     The option's name forms the prefix of the keys.
      *  @param  objids  The keys are parameterized by adding the vector values as suffixes.
      *  @throw  CoreError (#CoreError::INVALID_KEY)
      */
-    void remove(Opt option, std::vector <isize> objids);
+    void remove(Opt opt, std::vector <isize> objids);
 
     /// @}
 };
@@ -2203,7 +2271,6 @@ public:
     KeyboardAPI keyboard;
     
     // Misc
-    GuardsAPI copperBreakpoints; // TODO: Move inside AgnusAPI
     MsgQueueAPI msgQueue;
     DebuggerAPI debugger; // TODO: No longer needed? It's not 'wired'
     RemoteManagerAPI remoteManager;
@@ -2739,7 +2806,7 @@ public:
      *
      *  This is the main function to query a configuration option.
      *
-     *  @param option   The option to query
+     *  @param opt      The option to query
      *
      *  @note Some options require an additional parameter to uniquely
      *  determine the configured component. For those options, this function
@@ -2749,13 +2816,13 @@ public:
      *  A change requested by setAsync() shows up once the emulator thread has
      *  carried it out (see sync()).
      */
-    i64 get(Opt option) const;
+    i64 get(Opt opt) const;
     
     /** @brief  Queries a configuration option.
      *
      *  This is the main function to query a configuration option.
      *
-     *  @param option   The option to query
+     *  @param opt      The option to query
      *  @param id       The component to query
      *
      *  @note This function must only be called for those options that require
@@ -2765,7 +2832,7 @@ public:
      *  A change requested by setAsync() shows up once the emulator thread has
      *  carried it out (see sync()).
      */
-    i64 get(Opt option, long id) const;
+    i64 get(Opt opt, isize id) const;
     
     /** @brief  Configures a component.
      *
@@ -2799,7 +2866,7 @@ public:
      *  an additional parameter to uniquely determine the configured component.
      *  @see set(Opt, i64)
      */
-    void set(Opt opt, i64 value, long id);
+    void set(Opt opt, i64 value, isize id);
 
     /** Configures the emulator to match a specific Amiga model
      *
@@ -2835,7 +2902,7 @@ public:
      *  @param value    The option's value
      *  @param id       The component to configure
      */
-    void setAsync(Opt opt, i64 value, long id);
+    void setAsync(Opt opt, i64 value, isize id);
     void setAsync(ConfigScheme model);
 
     /** @brief  Checks if a configuration option would be accepted.
@@ -2856,7 +2923,7 @@ public:
      *  @param id       The component to configure
      *  @throw CoreError if the value would be rejected
      */
-    void check(Opt opt, i64 value, long id);
+    void check(Opt opt, i64 value, isize id);
 
     /** @brief  Exports the current configuration.
      *

@@ -211,9 +211,9 @@ SiAmCPUController::cycleBreakpoint(int addr)
     auto &breakpoints = SiAmController::core().cpu.breakpoints;
 
     if (auto guard = breakpoints.guardAt((u32)addr)) {
-        if (guard->enabled) breakpoints.disableAt((u32)addr); else breakpoints.enableAt((u32)addr);
+        if (guard->enabled) breakpoints.disableAtAsync((u32)addr); else breakpoints.enableAtAsync((u32)addr);
     } else {
-        breakpoints.setAt((u32)addr);
+        breakpoints.setAtAsync((u32)addr);
     }
     refresh();
 }
@@ -223,8 +223,8 @@ SiAmCPUController::toggleBreakpoint(int addr)
 {
     auto &breakpoints = SiAmController::core().cpu.breakpoints;
 
-    if (breakpoints.guardAt((u32)addr)) breakpoints.removeAt((u32)addr);
-    else breakpoints.setAt((u32)addr);
+    if (breakpoints.guardAt((u32)addr)) breakpoints.removeAtAsync((u32)addr);
+    else breakpoints.setAtAsync((u32)addr);
 
     refresh();
 }
@@ -232,7 +232,7 @@ SiAmCPUController::toggleBreakpoint(int addr)
 void
 SiAmCPUController::addBreakpoint(int addr)
 {
-    SiAmController::core().cpu.breakpoints.setAt((u32)addr);
+    SiAmController::core().cpu.breakpoints.setAtAsync((u32)addr);
     refresh();
 }
 
@@ -243,7 +243,7 @@ SiAmCPUController::toggleBreakpointRow(int row)
     quint32 addr = m_breakpointsModel.addrAt(row);
 
     if (auto guard = breakpoints.guardAt(addr)) {
-        if (guard->enabled) breakpoints.disableAt(addr); else breakpoints.enableAt(addr);
+        if (guard->enabled) breakpoints.disableAtAsync(addr); else breakpoints.enableAtAsync(addr);
         refresh();
     }
 }
@@ -251,21 +251,21 @@ SiAmCPUController::toggleBreakpointRow(int row)
 void
 SiAmCPUController::removeBreakpointRow(int row)
 {
-    SiAmController::core().cpu.breakpoints.removeAt(m_breakpointsModel.addrAt(row));
+    SiAmController::core().cpu.breakpoints.removeAtAsync(m_breakpointsModel.addrAt(row));
     refresh();
 }
 
 void
 SiAmCPUController::moveBreakpointRow(int row, int addr)
 {
-    SiAmController::core().cpu.breakpoints.moveTo(row, (u32)addr);
+    SiAmController::core().cpu.breakpoints.moveToAsync(row, (u32)addr);
     refresh();
 }
 
 void
 SiAmCPUController::addWatchpoint(int addr)
 {
-    SiAmController::core().cpu.watchpoints.setAt((u32)addr);
+    SiAmController::core().cpu.watchpoints.setAtAsync((u32)addr);
     refresh();
 }
 
@@ -276,7 +276,7 @@ SiAmCPUController::toggleWatchpointRow(int row)
     quint32 addr = m_watchpointsModel.addrAt(row);
 
     if (auto guard = watchpoints.guardAt(addr)) {
-        if (guard->enabled) watchpoints.disableAt(addr); else watchpoints.enableAt(addr);
+        if (guard->enabled) watchpoints.disableAtAsync(addr); else watchpoints.enableAtAsync(addr);
         refresh();
     }
 }
@@ -284,14 +284,14 @@ SiAmCPUController::toggleWatchpointRow(int row)
 void
 SiAmCPUController::removeWatchpointRow(int row)
 {
-    SiAmController::core().cpu.watchpoints.removeAt(m_watchpointsModel.addrAt(row));
+    SiAmController::core().cpu.watchpoints.removeAtAsync(m_watchpointsModel.addrAt(row));
     refresh();
 }
 
 void
 SiAmCPUController::moveWatchpointRow(int row, int addr)
 {
-    SiAmController::core().cpu.watchpoints.moveTo(row, (u32)addr);
+    SiAmController::core().cpu.watchpoints.moveToAsync(row, (u32)addr);
     refresh();
 }
 

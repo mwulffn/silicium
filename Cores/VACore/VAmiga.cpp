@@ -331,18 +331,39 @@ void
 GuardsAPI::setAt(u32 target, isize ignores)
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_SET_AT, GuardCmd { .list = type, .addr = target, .ignores = ignores }));
+}
+
+void
+GuardsAPI::setAtAsync(u32 target, isize ignores)
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_SET_AT, GuardCmd { .list = type, .addr = target, .ignores = ignores }));
 }
 
 void
-GuardsAPI::moveTo(isize nr, u32 newTarget)
+GuardsAPI::moveTo(isize nr, u32 target)
 {
     VAMIGA_PUBLIC
-    emu->put(Command(Cmd::GUARD_MOVE_NR, GuardCmd { .list = type, .nr = nr, .addr = newTarget }));
+    emu->sendAndWait(Command(Cmd::GUARD_MOVE_NR, GuardCmd { .list = type, .nr = nr, .addr = target }));
+}
+
+void
+GuardsAPI::moveToAsync(isize nr, u32 target)
+{
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::GUARD_MOVE_NR, GuardCmd { .list = type, .nr = nr, .addr = target }));
 }
 
 void
 GuardsAPI::remove(isize nr)
+{
+    VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_REMOVE_NR, GuardCmd { .list = type, .nr = nr }));
+}
+
+void
+GuardsAPI::removeAsync(isize nr)
 {
     VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_REMOVE_NR, GuardCmd { .list = type, .nr = nr }));
@@ -352,11 +373,25 @@ void
 GuardsAPI::removeAt(u32 target)
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_REMOVE_AT, GuardCmd { .list = type, .addr = target }));
+}
+
+void
+GuardsAPI::removeAtAsync(u32 target)
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_REMOVE_AT, GuardCmd { .list = type, .addr = target }));
 }
 
 void
 GuardsAPI::removeAll()
+{
+    VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_REMOVE_ALL, GuardCmd { .list = type }));
+}
+
+void
+GuardsAPI::removeAllAsync()
 {
     VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_REMOVE_ALL, GuardCmd { .list = type }));
@@ -366,11 +401,25 @@ void
 GuardsAPI::enable(isize nr)
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_ENABLE_NR, GuardCmd { .list = type, .nr = nr }));
+}
+
+void
+GuardsAPI::enableAsync(isize nr)
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_ENABLE_NR, GuardCmd { .list = type, .nr = nr }));
 }
 
 void
 GuardsAPI::enableAt(u32 target)
+{
+    VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_ENABLE_AT, GuardCmd { .list = type, .addr = target }));
+}
+
+void
+GuardsAPI::enableAtAsync(u32 target)
 {
     VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_ENABLE_AT, GuardCmd { .list = type, .addr = target }));
@@ -380,11 +429,25 @@ void
 GuardsAPI::enableAll()
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_ENABLE_ALL, GuardCmd { .list = type }));
+}
+
+void
+GuardsAPI::enableAllAsync()
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_ENABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::disable(isize nr)
+{
+    VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_DISABLE_NR, GuardCmd { .list = type, .nr = nr }));
+}
+
+void
+GuardsAPI::disableAsync(isize nr)
 {
     VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_DISABLE_NR, GuardCmd { .list = type, .nr = nr }));
@@ -394,6 +457,13 @@ void
 GuardsAPI::disableAt(u32 target)
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_DISABLE_AT, GuardCmd { .list = type, .addr = target }));
+}
+
+void
+GuardsAPI::disableAtAsync(u32 target)
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_DISABLE_AT, GuardCmd { .list = type, .addr = target }));
 }
 
@@ -401,11 +471,25 @@ void
 GuardsAPI::disableAll()
 {
     VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_DISABLE_ALL, GuardCmd { .list = type }));
+}
+
+void
+GuardsAPI::disableAllAsync()
+{
+    VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_DISABLE_ALL, GuardCmd { .list = type }));
 }
 
 void
 GuardsAPI::toggle(isize nr)
+{
+    VAMIGA_PUBLIC
+    emu->sendAndWait(Command(Cmd::GUARD_TOGGLE_NR, GuardCmd { .list = type, .nr = nr }));
+}
+
+void
+GuardsAPI::toggleAsync(isize nr)
 {
     VAMIGA_PUBLIC
     emu->put(Command(Cmd::GUARD_TOGGLE_NR, GuardCmd { .list = type, .nr = nr }));
@@ -897,18 +981,18 @@ AudioPortAPI::copyInterleaved(float *buffer, isize n)
     return port->copyInterleaved(buffer, n);
 }
 
-void
-AudioPortAPI::drawL(u32 *buffer, isize width, isize height, u32 color) const
+float
+AudioPortAPI::drawL(u32 *buffer, isize width, isize height, float maxAmp, u32 color) const
 {
     VAMIGA_PUBLIC
-    port->stream.drawL(buffer, width, height, color);
+    return port->stream.drawL(buffer, width, height, maxAmp, color);
 }
 
-void
-AudioPortAPI::drawR(u32 *buffer, isize width, isize height, u32 color) const
+float
+AudioPortAPI::drawR(u32 *buffer, isize width, isize height, float maxAmp, u32 color) const
 {
     VAMIGA_PUBLIC
-    port->stream.drawR(buffer, width, height, color);
+    return port->stream.drawR(buffer, width, height, maxAmp, color);
 }
 
 
@@ -1213,13 +1297,6 @@ FloppyDriveAPI::getCachedInfo() const
 {
     VAMIGA_PUBLIC
     return drive->info.backed();
-}
-
-FloppyDisk &
-FloppyDriveAPI::getDisk() const
-{
-    VAMIGA_PUBLIC_SUSPEND
-    return *(drive->disk);
 }
 
 bool
@@ -1682,10 +1759,10 @@ DefaultsAPI::get(const string &key) const
 }
 
 i64
-DefaultsAPI::get(Opt option, isize nr) const
+DefaultsAPI::get(Opt opt, isize nr) const
 {
     VAMIGA_PUBLIC
-    return defaults->get(option, nr);
+    return defaults->get(opt, nr);
 }
 
 string
@@ -1703,10 +1780,10 @@ DefaultsAPI::getFallback(const string &key) const
 }
 
 i64
-DefaultsAPI::getFallback(Opt option, isize nr) const
+DefaultsAPI::getFallback(Opt opt, isize nr) const
 {
     VAMIGA_PUBLIC
-    return defaults->getFallback(option, nr);
+    return defaults->getFallback(opt, nr);
 }
 
 void
@@ -1794,17 +1871,17 @@ DefaultsAPI::remove(const string &key)
 }
 
 void
-DefaultsAPI::remove(Opt option)
+DefaultsAPI::remove(Opt opt)
 {
     VAMIGA_PUBLIC
-    defaults->remove(option);
+    defaults->remove(opt);
 }
 
 void
-DefaultsAPI::remove(Opt option, std::vector <isize> objids)
+DefaultsAPI::remove(Opt opt, std::vector <isize> objids)
 {
     VAMIGA_PUBLIC
-    defaults->remove(option, objids);
+    defaults->remove(opt, objids);
 }
 
 
@@ -1982,6 +2059,15 @@ VAmiga::VAmiga() {
     agnus.xray.xray = &emu->main.agnus.xray;
     agnus.copper.emu = emu;
     agnus.copper.copper = &emu->main.agnus.copper;
+    agnus.copper.breakpoints.emu = emu;
+    agnus.copper.breakpoints.guards = &emu->main.agnus.copper.debugger.breakpoints;
+    agnus.copper.breakpoints.type = GuardType::COPPER_BREAKPOINT;
+    agnus.copper.watchpoints.emu = emu;
+    agnus.copper.watchpoints.guards = &emu->main.agnus.copper.debugger.watchpoints;
+    agnus.copper.watchpoints.type = GuardType::COPPER_WATCHPOINT;
+    agnus.beamtraps.emu = emu;
+    agnus.beamtraps.guards = &emu->main.agnus.debugger.beamtraps;
+    agnus.beamtraps.type = GuardType::BEAMTRAP;
     agnus.blitter.emu = emu;
     agnus.blitter.blitter = &emu->main.agnus.blitter;
 
@@ -2001,6 +2087,9 @@ VAmiga::VAmiga() {
     cpu.watchpoints.emu = emu;
     cpu.watchpoints.guards = &emu->main.cpu.watchpoints;
     cpu.watchpoints.type = GuardType::WATCHPOINT;
+    cpu.catchpoints.emu = emu;
+    cpu.catchpoints.guards = &emu->main.cpu.catchpoints;
+    cpu.catchpoints.type = GuardType::CATCHPOINT;
 
     denise.emu = emu;
     denise.denise = &emu->main.denise;
@@ -2089,9 +2178,6 @@ VAmiga::VAmiga() {
     keyboard.keyboard = &emu->main.keyboard;
 
     // Misc
-    copperBreakpoints.emu = emu;
-    copperBreakpoints.guards = &emu->main.agnus.copper.debugger.breakpoints;
-    copperBreakpoints.type = GuardType::COPPER_BREAKPOINT;
 
     msgQueue.emu = emu;
     msgQueue.msgQueue = &emu->main.msgQueue;
@@ -2451,17 +2537,17 @@ VAmiga::isLaunched() const
 }
 
 i64
-VAmiga::get(Opt option) const
+VAmiga::get(Opt opt) const
 {
     VAMIGA_PUBLIC
-    return emu->get(option);
+    return emu->get(opt);
 }
 
 i64
-VAmiga::get(Opt option, long id) const
+VAmiga::get(Opt opt, isize id) const
 {
     VAMIGA_PUBLIC
-    return emu->get(option, id);
+    return emu->get(opt, id);
 }
 
 void
@@ -2497,7 +2583,7 @@ VAmiga::set(Opt opt, i64 value)
 }
 
 void
-VAmiga::set(Opt opt, i64 value, long id)
+VAmiga::set(Opt opt, i64 value, isize id)
 {
     VAMIGA_PUBLIC
     emu->sendAndWait(Command(Cmd::CONFIG, ConfigCmd { .option = opt, .value = value, .id = id }));
@@ -2512,14 +2598,14 @@ VAmiga::check(Opt opt, i64 value)
 }
 
 void
-VAmiga::check(Opt opt, i64 value, long id)
+VAmiga::check(Opt opt, i64 value, isize id)
 {
     VAMIGA_PUBLIC
     emu->check(opt, value, { id });
 }
 
 void
-VAmiga::setAsync(Opt opt, i64 value, long id)
+VAmiga::setAsync(Opt opt, i64 value, isize id)
 {
     VAMIGA_PUBLIC
     putAsync(Cmd::CONFIG, ConfigCmd { .option = opt, .value = value, .id = id });

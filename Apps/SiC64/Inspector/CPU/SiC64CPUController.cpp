@@ -52,8 +52,6 @@ SiC64CPUController::disassembleWindow(int base, int pc0, int &pcRow) const
 {
     auto &cpu = C64Controller::core().cpu;
 
-    char addrStr[64], dataStr[64], instrStr[64];
-
     QVector<SiC64InstructionModel::Row> rows;
     rows.reserve(256);
     pcRow = -1;
@@ -61,19 +59,20 @@ SiC64CPUController::disassembleWindow(int base, int pc0, int &pcRow) const
 
     for (int i = 0; i < 256; i++) {
 
-        cpu.disassemble(addrStr, "%p", addr);
-        cpu.disassemble(dataStr, "%b", addr);
-        isize len = cpu.disassemble(instrStr, "%i", addr);
+        auto addrStr = cpu.debugger.disassemble(addr, "%p");
+        auto dataStr = cpu.debugger.disassemble(addr, "%b");
+        isize len = 0;
+        auto instrStr = cpu.debugger.disassemble(addr, "%i", &len);
 
         // Breakpoint marker: 0 = none, 1 = enabled, 2 = disabled
         int bp = 0;
-        if (auto *guard = cpu.breakpointAt(addr)) bp = guard->enabled ? 1 : 2;
+        if (auto guard = cpu.breakpoints.guardAt(addr)) bp = guard->enabled ? 1 : 2;
 
         SiC64InstructionModel::Row row;
         row.addrValue = int(addr);
-        row.addr = QString(addrStr);
-        row.bytes = QString(dataStr);
-        row.instr = QString(instrStr);
+        row.addr = QString::fromStdString(addrStr);
+        row.bytes = QString::fromStdString(dataStr);
+        row.instr = QString::fromStdString(instrStr);
         row.breakpoint = bp;
         row.isPC = (int(addr) == pc0);
         rows.append(row);
@@ -111,23 +110,21 @@ SiC64CPUController::rebuildTrace()
 {
     auto &cpu = C64Controller::core().cpu;
 
-    char addrStr[64], flagsStr[64], instrStr[64];
-
     QVector<SiC64TraceModel::Row> rows;
-    isize count = cpu.loggedInstructions();
+    isize count = cpu.debugger.loggedInstructions();
     rows.reserve(int(count));
 
     for (isize i = 0; i < count; i++) {
 
-        cpu.disassembleRecorded(addrStr, "%p", i);
-        cpu.disassembleRecorded(flagsStr, "%f", i);
-        cpu.disassembleRecorded(instrStr, "%i", i);
+        auto addrStr = cpu.debugger.disassembleRecorded(i, "%p");
+        auto flagsStr = cpu.debugger.disassembleRecorded(i, "%f");
+        auto instrStr = cpu.debugger.disassembleRecorded(i, "%i");
 
         SiC64TraceModel::Row row;
-        row.addrValue = int(cpu.logEntry(i).pc);
-        row.addr = QString(addrStr);
-        row.flags = QString(flagsStr);
-        row.instr = QString(instrStr);
+        row.addrValue = int(cpu.debugger.logEntry(i).pc);
+        row.addr = QString::fromStdString(addrStr);
+        row.flags = QString::fromStdString(flagsStr);
+        row.instr = QString::fromStdString(instrStr);
         rows.append(row);
     }
 
@@ -144,7 +141,7 @@ SiC64CPUController::rebuildGuards()
         QVariantList rows;
         for (long nr = 0; ; nr++) {
 
-            auto *guard = guardAt(nr);
+            auto guard = guardAt(nr);
             if (!guard) break;
 
             QVariantMap row;
@@ -157,8 +154,8 @@ SiC64CPUController::rebuildGuards()
         return rows;
     };
 
-    m_breakpoints = collect([&](long nr) { return cpu.breakpointNr(nr); });
-    m_watchpoints = collect([&](long nr) { return cpu.watchpointNr(nr); });
+    m_breakpoints = collect([&](isize nr) { return cpu.breakpoints.guardNr(nr); });
+    m_watchpoints = collect([&](isize nr) { return cpu.watchpoints.guardNr(nr); });
 }
 
 void
@@ -180,10 +177,10 @@ SiC64CPUController::cycleBreakpoint(int addr)
 {
     auto &core = C64Controller::core();
 
-    if (auto *guard = core.cpu.breakpointAt(u16(addr))) {
-        core.putAsync(guard->enabled ? Cmd::BP_DISABLE_AT : Cmd::BP_ENABLE_AT, addr);
+    if (auto guard = core.cpu.breakpoints.guardAt(u16(addr))) {
+        if (guard->enabled) core.cpu.breakpoints.disableAt(addr); else core.cpu.breakpoints.enableAt(addr);
     } else {
-        core.putAsync(Cmd::BP_SET_AT, addr);
+        core.cpu.breakpoints.setAt(addr);
     }
     refresh();
 }
@@ -193,14 +190,18 @@ SiC64CPUController::toggleBreakpoint(int addr)
 {
     auto &core = C64Controller::core();
 
-    core.putAsync(core.cpu.breakpointAt(u16(addr)) ? Cmd::BP_REMOVE_AT : Cmd::BP_SET_AT, addr);
+    if (core.cpu.breakpoints.guardAt(u16(addr))) {
+        core.cpu.breakpoints.removeAt(addr);
+    } else {
+        core.cpu.breakpoints.setAt(addr);
+    }
     refresh();
 }
 
 void
 SiC64CPUController::addBreakpoint(int addr)
 {
-    C64Controller::core().putAsync(Cmd::BP_SET_AT, addr);
+    C64Controller::core().cpu.breakpoints.setAt(addr);
     refresh();
 }
 
@@ -209,8 +210,8 @@ SiC64CPUController::toggleBreakpointNr(int nr)
 {
     auto &core = C64Controller::core();
 
-    if (auto *guard = core.cpu.breakpointNr(nr)) {
-        core.putAsync(guard->enabled ? Cmd::BP_DISABLE_NR : Cmd::BP_ENABLE_NR, nr);
+    if (core.cpu.breakpoints.guardNr(nr)) {
+        core.cpu.breakpoints.toggle(nr);
         refresh();
     }
 }
@@ -218,21 +219,21 @@ SiC64CPUController::toggleBreakpointNr(int nr)
 void
 SiC64CPUController::removeBreakpointNr(int nr)
 {
-    C64Controller::core().putAsync(Cmd::BP_REMOVE_NR, nr);
+    C64Controller::core().cpu.breakpoints.remove(nr);
     refresh();
 }
 
 void
 SiC64CPUController::moveBreakpointNr(int nr, int addr)
 {
-    C64Controller::core().putAsync(Cmd::BP_MOVE_TO, nr, addr);
+    C64Controller::core().cpu.breakpoints.moveTo(nr, addr);
     refresh();
 }
 
 void
 SiC64CPUController::addWatchpoint(int addr)
 {
-    C64Controller::core().putAsync(Cmd::WP_SET_AT, addr);
+    C64Controller::core().cpu.watchpoints.setAt(addr);
     refresh();
 }
 
@@ -241,8 +242,8 @@ SiC64CPUController::toggleWatchpointNr(int nr)
 {
     auto &core = C64Controller::core();
 
-    if (auto *guard = core.cpu.watchpointNr(nr)) {
-        core.putAsync(guard->enabled ? Cmd::WP_DISABLE_NR : Cmd::WP_ENABLE_NR, nr);
+    if (core.cpu.watchpoints.guardNr(nr)) {
+        core.cpu.watchpoints.toggle(nr);
         refresh();
     }
 }
@@ -250,20 +251,20 @@ SiC64CPUController::toggleWatchpointNr(int nr)
 void
 SiC64CPUController::removeWatchpointNr(int nr)
 {
-    C64Controller::core().putAsync(Cmd::WP_REMOVE_NR, nr);
+    C64Controller::core().cpu.watchpoints.remove(nr);
     refresh();
 }
 
 void
 SiC64CPUController::moveWatchpointNr(int nr, int addr)
 {
-    C64Controller::core().putAsync(Cmd::WP_MOVE_TO, nr, addr);
+    C64Controller::core().cpu.watchpoints.moveTo(nr, addr);
     refresh();
 }
 
 void
 SiC64CPUController::clearTrace()
 {
-    C64Controller::core().cpu.clearLog();
+    C64Controller::core().cpu.debugger.clearLog();
     refresh();
 }

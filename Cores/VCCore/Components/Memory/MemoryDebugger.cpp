@@ -13,78 +13,120 @@
 #include "vcconfig.h"
 #include "MemoryDebugger.h"
 #include "C64.h"
+#include "utl/abilities/Dumpable.h"
 
 namespace vc64 {
 
-isize
-MemoryDebugger::dump(char *dst, u16 addr, const char *fmt) const
+namespace {
+
+// Reads a range of memory without side effects. If no memory type is given,
+// the bytes are read from where the CPU would find them.
+utl::Dumpable::DataProvider
+provider(const Memory &mem, u16 addr, isize bytes, optional<MemType> src = { })
 {
-    bool ctrl = false;
-    isize bcnt = 0, ccnt = 0;
-    char c;
+    return [&mem, addr, bytes, src](isize offset, isize n) -> optional<isize> {
 
-    do {
-        c = *fmt++;
+        isize value = 0;
 
-        if (!ctrl) {
+        while (n-- > 0) {
 
-            if (c == '%') { ctrl = true; } else *dst++ = c;
-            continue;
+            if (offset >= bytes) return {};
+            u16 a = u16(addr + offset++);
+            value = value << 8 | (src ? mem.spypeek(a, *src) : mem.spypeek(a));
         }
-
-        switch (c) {
-
-            case 'p': // Address
-
-                snprintf(dst, 5, "%04X", addr);
-                dst += 4;
-                break;
-
-            case 'b': // Byte
-
-                snprintf(dst, 3, "%02X", mem.spypeek(u16(addr + bcnt++)));
-                dst += 2;
-                break;
-
-            case 'c': // Character
-            {
-                auto value = mem.spypeek(u16(addr + ccnt++));
-                *dst++ = isprint(value) ? char(value) : '.';
-                break;
-            }
-            default:
-                fatalError;
-        }
-
-        ctrl = false;
-
-    } while (c);
-
-    return std::max(bcnt, ccnt);
+        return value;
+    };
 }
 
+// Dumps a single line of memory. Returns the number of consumed bytes.
 isize
-MemoryDebugger::dump(std::ostream &os, u16 addr, const char *fmt) const
+dumpLine(const Memory &mem, std::ostream &os, u16 addr, const string &fmt, isize bytes)
 {
-    char str[256];
-    isize result = dump(str, addr, fmt);
-    os << str;
+    utl::Dumpable::dump(os, { .base = 16, .uppercase = true }, fmt, provider(mem, addr, bytes), 0, addr);
+    return bytes;
+}
+
+// Returns a format string with one directive for each group of 'sz' bytes
+string
+numberFormat(isize bytes, isize sz, bool unmapped)
+{
+    isize group = (sz == 2 || sz == 4) ? sz : 1;
+    string unit = group == 4 ? "%l " : group == 2 ? "%w " : "%b ";
+
+    // Unmapped memory is shown as '--', no matter which number system is used
+    if (unmapped) unit = string(2 * group, '-') + " ";
+
+    string result;
+    for (isize i = 0; i < bytes / group; i++) result += unit;
     return result;
+}
+
+string
+numberDump(const Memory &mem, MemType src, u16 addr, isize bytes, isize sz, isize base)
+{
+    assert(sz == 1 || bytes % sz == 0);
+
+    auto fmt = numberFormat(bytes, sz, src == MemType::NONE);
+    if (src == MemType::NONE) return fmt;
+
+    std::stringstream ss;
+    utl::Dumpable::dump(ss, { .base = base, .uppercase = true, .pad = '0' }, fmt, provider(mem, addr, bytes, src));
+    return ss.str();
+}
+
+string
+repeat(const string &unit, isize count, const string &delim = "")
+{
+    string result;
+    for (isize i = 0; i < count; i++) result += (i ? delim : "") + unit;
+    return result;
+}
+
+}
+
+string
+MemoryDebugger::ascDump(MemType src, u16 addr, isize bytes) const
+{
+    // Unmapped memory has no text representation
+    if (src == MemType::NONE) return "";
+
+    string fmt;
+    for (isize i = 0; i < bytes; i++) fmt += "%c";
+
+    // Only a part of the character set is shown as it is
+    auto printable = [](int c) { return (c >= 32 && c <= 57) || (c >= 65 && c <= 90); };
+
+    std::stringstream ss;
+    utl::Dumpable::dump(ss, { .base = 16, .printable = printable }, fmt, provider(mem, addr, bytes, src));
+    return ss.str();
+}
+
+string
+MemoryDebugger::hexDump(MemType src, u16 addr, isize bytes, isize sz) const
+{
+    return numberDump(mem, src, addr, bytes, sz, 16);
+}
+
+string
+MemoryDebugger::decDump(MemType src, u16 addr, isize bytes, isize sz) const
+{
+    return numberDump(mem, src, addr, bytes, sz, 10);
+}
+
+string
+MemoryDebugger::memDump(MemType src, u16 addr, isize bytes, isize sz) const
+{
+    return hexDump(src, addr, bytes, sz) + "  " + ascDump(src, addr, bytes);
 }
 
 isize
 MemoryDebugger::ascDump(std::ostream &os, u16 addr, isize lines)
 {
     current = addr;
-    
+
     for (isize i = 0; i < lines; i++) {
 
-        current += (u16)dump(os, current,
-                             "%p: "
-                             "%c%c%c%c%c%c%c%c" "%c%c%c%c%c%c%c%c"
-                             "%c%c%c%c%c%c%c%c" "%c%c%c%c%c%c%c%c"
-                             "%c%c%c%c%c%c%c%c" "%c%c%c%c%c%c%c%c"
-                             "%c%c%c%c%c%c%c%c" "%c%c%c%c%c%c%c%c\n");
+        current += (u16)dumpLine(mem, os, current, "%4p: " + repeat("%c", 64) + "\n", 64);
     }
 
     return isize(current - addr);
@@ -97,9 +139,7 @@ MemoryDebugger::hexDump(std::ostream &os, u16 addr, isize lines)
 
     for (isize i = 0; i < lines; i++) {
 
-        current += (u16)dump(os, current,
-                             "%p: "
-                             "%b %b %b %b %b %b %b %b %b %b %b %b %b %b %b %b\n");
+        current += (u16)dumpLine(mem, os, current, "%4p: " + repeat("%b", 16, " ") + "\n", 16);
     }
 
     return isize(current - addr);
@@ -112,10 +152,7 @@ MemoryDebugger::memDump(std::ostream &os, u16 addr, isize lines)
 
     for (isize i = 0; i < lines; i++) {
 
-        current += (u16)dump(os, current,
-                             "%p: "
-                             "%b %b %b %b %b %b %b %b %b %b %b %b %b %b %b %b  "
-                             "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n");
+        current += (u16)dumpLine(mem, os, current, "%4p: " + repeat("%b", 16, " ") + "  " + repeat("%c", 16) + "\n", 16);
     }
 
     return isize(current - addr);

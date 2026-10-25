@@ -89,9 +89,18 @@ VirtualC64::VirtualC64() {
 
     mem.emu = emu;
     mem.mem = &emu->main.mem;
+    mem.debugger.emu = emu;
+    mem.debugger.mem = &emu->main.mem;
 
     cpu.emu = emu;
     cpu.cpu = &emu->main.cpu;
+    cpu.debugger.emu = emu;
+    cpu.debugger.cpu = &emu->main.cpu;
+    cpu.breakpoints.emu = emu;
+    cpu.breakpoints.cpu = &emu->main.cpu;
+    cpu.watchpoints.emu = emu;
+    cpu.watchpoints.cpu = &emu->main.cpu;
+    cpu.watchpoints.watchpoints = true;
 
     cia1.emu = emu;
     cia1.cia = &emu->main.cia1;
@@ -908,74 +917,185 @@ CPUAPI::getCachedInfo() const
     return cpu->info.backed();
 }
 
+//
+// CPU debugger
+//
+
 isize
-CPUAPI::loggedInstructions() const
+CPUDebuggerAPI::loggedInstructions() const
 {
     VC64_PUBLIC
     return cpu->debugger.loggedInstructions();
 }
 
 void
-CPUAPI::clearLog()
+CPUDebuggerAPI::clearLog()
 {
     VC64_PUBLIC_SUSPEND
     return cpu->debugger.clearLog();
 }
 
-void
-CPUAPI::setNumberFormat(DasmNumberFormat instrFormat, DasmNumberFormat dataFormat)
-{
-    VC64_PUBLIC_SUSPEND
-    return cpu->disassembler.setNumberFormat(instrFormat, dataFormat);
-}
-
-isize
-CPUAPI::disassemble(char *dst, const char *fmt, u16 addr) const
-{
-    VC64_PUBLIC
-    return cpu->disassembler.disass(dst, fmt, addr);
-}
-
-isize
-CPUAPI::disassembleRecorded(char *dst, const char *fmt, isize nr) const
-{
-    VC64_PUBLIC
-    return cpu->debugger.disassRecorded(dst, fmt, nr);
-}
-
 RecordedInstruction
-CPUAPI::logEntry(isize nr) const
+CPUDebuggerAPI::logEntry(isize nr) const
 {
     VC64_PUBLIC
     return cpu->debugger.logEntryAbs(nr);
 }
 
-Guard *
-CPUAPI::breakpointNr(long nr) const
+void
+CPUDebuggerAPI::setNumberFormat(DasmNumberFormat instrFormat, DasmNumberFormat dataFormat)
 {
-    VC64_PUBLIC
-    return cpu->debugger.breakpoints.guardNr(nr);
+    VC64_PUBLIC_SUSPEND
+    return cpu->disassembler.setNumberFormat(instrFormat, dataFormat);
 }
 
-Guard *
-CPUAPI::breakpointAt(u32 addr) const
+string
+CPUDebuggerAPI::disassemble(u16 addr, const string &fmt, isize *len) const
 {
     VC64_PUBLIC
-    return cpu->debugger.breakpoints.guardAt(addr);
+
+    char buffer[256];
+    auto result = cpu->disassembler.disass(buffer, fmt.c_str(), addr);
+    if (len) *len = result;
+
+    return string(buffer);
 }
 
-Guard *
-CPUAPI::watchpointNr(long nr) const
+string
+CPUDebuggerAPI::disassembleRecorded(isize nr, const string &fmt, isize *len) const
 {
     VC64_PUBLIC
-    return cpu->debugger.watchpoints.guardNr(nr);
+
+    char buffer[256];
+    auto result = cpu->debugger.disassRecorded(buffer, fmt.c_str(), nr);
+    if (len) *len = result;
+
+    return string(buffer);
 }
 
-Guard *
-CPUAPI::watchpointAt(u32 addr) const
+//
+// Guards
+//
+
+// Returns a copy of a guard, so that no pointer into the emulator leaves the API
+static std::optional<GuardInfo>
+guardInfo(const Guard *g)
+{
+    if (!g) return { };
+    return GuardInfo { .addr = g->addr, .enabled = g->enabled, .hits = g->hits, .ignore = g->ignore };
+}
+
+// Returns the guard list selected by the API
+static const peddle::Guards &
+guardList(const CPU *cpu, bool watchpoints)
+{
+    if (watchpoints) return cpu->debugger.watchpoints;
+    return cpu->debugger.breakpoints;
+}
+
+isize
+GuardsAPI::elements() const
 {
     VC64_PUBLIC
-    return cpu->debugger.watchpoints.guardAt(addr);
+    return guardList(cpu, watchpoints).elements();
+}
+
+std::optional<GuardInfo>
+GuardsAPI::guardNr(isize nr) const
+{
+    VC64_PUBLIC
+    return guardInfo(guardList(cpu, watchpoints).guardNr(nr));
+}
+
+std::optional<GuardInfo>
+GuardsAPI::guardAt(u32 addr) const
+{
+    VC64_PUBLIC
+    return guardInfo(guardList(cpu, watchpoints).guardAt(addr));
+}
+
+void
+GuardsAPI::setAt(u32 addr, isize ignores)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_SET_AT : Cmd::BP_SET_AT, i64(addr), i64(ignores)));
+}
+
+void
+GuardsAPI::moveTo(isize nr, u32 addr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_MOVE_TO : Cmd::BP_MOVE_TO, i64(nr), i64(addr)));
+}
+
+void
+GuardsAPI::remove(isize nr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_NR : Cmd::BP_REMOVE_NR, i64(nr)));
+}
+
+void
+GuardsAPI::removeAt(u32 addr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_AT : Cmd::BP_REMOVE_AT, i64(addr)));
+}
+
+void
+GuardsAPI::removeAll()
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_REMOVE_ALL : Cmd::BP_REMOVE_ALL));
+}
+
+void
+GuardsAPI::enable(isize nr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_NR : Cmd::BP_ENABLE_NR, i64(nr)));
+}
+
+void
+GuardsAPI::enableAt(u32 addr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_AT : Cmd::BP_ENABLE_AT, i64(addr)));
+}
+
+void
+GuardsAPI::enableAll()
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_ENABLE_ALL : Cmd::BP_ENABLE_ALL));
+}
+
+void
+GuardsAPI::disable(isize nr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_NR : Cmd::BP_DISABLE_NR, i64(nr)));
+}
+
+void
+GuardsAPI::disableAt(u32 addr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_AT : Cmd::BP_DISABLE_AT, i64(addr)));
+}
+
+void
+GuardsAPI::disableAll()
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_DISABLE_ALL : Cmd::BP_DISABLE_ALL));
+}
+
+void
+GuardsAPI::toggle(isize nr)
+{
+    VC64_PUBLIC
+    emu->put(Command(watchpoints ? Cmd::WP_TOGGLE_NR : Cmd::BP_TOGGLE_NR, i64(nr)));
 }
 
 
@@ -1005,17 +1125,31 @@ MemoryAPI::getCachedInfo() const
 }
 
 string
-MemoryAPI::memdump(u16 addr, isize num, bool hex, isize pads, MemType src) const
+MemoryDebuggerAPI::ascDump(MemType src, u16 addr, isize bytes) const
 {
     VC64_PUBLIC
-    return mem->memdump(addr, num, hex, pads, src);
+    return mem->debugger.ascDump(src, addr, bytes);
 }
 
 string
-MemoryAPI::txtdump(u16 addr, isize num, MemType src) const
+MemoryDebuggerAPI::hexDump(MemType src, u16 addr, isize bytes, isize sz) const
 {
     VC64_PUBLIC
-    return mem->txtdump(addr, num, src);
+    return mem->debugger.hexDump(src, addr, bytes, sz);
+}
+
+string
+MemoryDebuggerAPI::decDump(MemType src, u16 addr, isize bytes, isize sz) const
+{
+    VC64_PUBLIC
+    return mem->debugger.decDump(src, addr, bytes, sz);
+}
+
+string
+MemoryDebuggerAPI::memDump(MemType src, u16 addr, isize bytes, isize sz) const
+{
+    VC64_PUBLIC
+    return mem->debugger.memDump(src, addr, bytes, sz);
 }
 
 void
@@ -1176,6 +1310,20 @@ AudioPortAPI::getConfig() const
     return audioPort->getConfig();
 }
 
+const AudioPortInfo &
+AudioPortAPI::getInfo() const
+{
+    VC64_PUBLIC
+    return audioPort->info.current();
+}
+
+const AudioPortInfo &
+AudioPortAPI::getCachedInfo() const
+{
+    VC64_PUBLIC
+    return audioPort->info.backed();
+}
+
 
 isize
 AudioPortAPI::copyMono(float *buffer, isize n)
@@ -1202,6 +1350,27 @@ AudioPortAPI::copyInterleaved(float *buffer, isize n)
 //
 // Video port
 //
+
+const VideoPortConfig &
+VideoPortAPI::getConfig() const
+{
+    VC64_PUBLIC
+    return videoPort->getConfig();
+}
+
+const VideoPortInfo &
+VideoPortAPI::getInfo() const
+{
+    VC64_PUBLIC
+    return videoPort->info.current();
+}
+
+const VideoPortInfo &
+VideoPortAPI::getCachedInfo() const
+{
+    VC64_PUBLIC
+    return videoPort->info.backed();
+}
 
 void
 VideoPortAPI::lockTexture()
@@ -1412,10 +1581,10 @@ KeyboardAPI::autoType(const string &text)
 }
 
 void
-KeyboardAPI::abortAutoTyping()
+KeyboardAPI::abortTyping()
 {
     VC64_PUBLIC_SUSPEND
-    keyboard->abortAutoTyping();
+    keyboard->abortTyping();
     emu->markAsDirty();
 }
 
@@ -1423,6 +1592,13 @@ KeyboardAPI::abortAutoTyping()
 //
 // Joystick
 //
+
+const JoystickConfig &
+JoystickAPI::getConfig() const
+{
+    VC64_PUBLIC
+    return joystick->getConfig();
+}
 
 const JoystickInfo &
 JoystickAPI::getInfo() const

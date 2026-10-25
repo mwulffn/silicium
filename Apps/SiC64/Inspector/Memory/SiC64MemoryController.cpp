@@ -129,8 +129,9 @@ SiC64MemoryController::rebuildRows()
 
         SiC64MemDumpModel::Row r;
         r.addr = formatNumber(addr, 4);
-        r.hex = QString::fromStdString(mem.memdump(addr, 16, hex, 1, src));
-        r.ascii = QString::fromStdString(mem.txtdump(addr, 16, src));
+        auto numbers = hex ? mem.debugger.hexDump(src, addr, 16) : mem.debugger.decDump(src, addr, 16);
+        r.hex = " " + QString::fromStdString(numbers).trimmed();
+        r.ascii = QString::fromStdString(mem.debugger.ascDump(src, addr, 16));
         rows.append(r);
     }
 

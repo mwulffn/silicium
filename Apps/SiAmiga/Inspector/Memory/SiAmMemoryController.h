@@ -40,7 +40,7 @@
 //  - The core's own MemoryDebuggerAPI (core().mem.debugger) only ever
 //    formats memory dumps in hex (hexDump()/ascDump()/memDump() -- no
 //    decimal mode the way C64Controller::isHex() switches vc64's
-//    mem.memdump()), so the dump grid always shows hex regardless of the
+//    mem.debugger.hexDump()/decDump()), so the dump grid always shows hex regardless of the
 //    shared hex/decimal display setting; that setting still governs every
 //    other numeric field on the panel (addresses, register-style values).
 //  - There's no MEM_HEATMAP config option or equivalent in vAmiga's core,

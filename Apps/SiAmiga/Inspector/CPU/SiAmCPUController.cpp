@@ -40,18 +40,18 @@ SiAmCPUController::disassembleWindow(quint32 base, quint32 pc0, int &pcRow) cons
     for (int i = 0; i < 256; i++) {
 
         isize len = 0;
-        const char *instr = debugger.disassembleInstr(addr, &len);
-        const char *words = debugger.disassembleWords(addr, len / 2);
-        const char *addrStr = debugger.disassembleAddr(addr);
+        auto instr = debugger.disassembleInstr(addr, &len);
+        auto words = debugger.disassembleWords(addr, len / 2);
+        auto addrStr = debugger.disassembleAddr(addr);
 
         int bp = 0;
         if (auto guard = breakpoints.guardAt(addr)) bp = guard->enabled ? 1 : 2;
 
         SiAmInstructionModel::Row row;
         row.addrValue = addr;
-        row.addr = QString(addrStr);
-        row.bytes = QString(words);
-        row.instr = QString(instr);
+        row.addr = QString::fromStdString(addrStr);
+        row.bytes = QString::fromStdString(words);
+        row.instr = QString::fromStdString(instr);
         row.breakpoint = bp;
         row.isPC = (addr == pc0);
         rows.append(row);
@@ -95,15 +95,15 @@ SiAmCPUController::rebuildTrace()
     for (isize i = 0; i < count; i++) {
 
         isize len = 0;
-        const char *addrStr = debugger.disassembleRecordedPC(i);
-        const char *instr = debugger.disassembleRecordedInstr(i, &len);
-        const char *flags = debugger.disassembleRecordedFlags(i);
+        auto addrStr = debugger.disassembleRecordedPC(i);
+        auto instr = debugger.disassembleRecordedInstr(i, &len);
+        auto flags = debugger.disassembleRecordedFlags(i);
 
         SiAmTraceModel::Row row;
         row.addrValue = 0;
-        row.addr = QString(addrStr);
-        row.flags = QString(flags);
-        row.instr = QString(instr);
+        row.addr = QString::fromStdString(addrStr);
+        row.flags = QString::fromStdString(flags);
+        row.instr = QString::fromStdString(instr);
         rows.append(row);
     }
 

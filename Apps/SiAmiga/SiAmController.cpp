@@ -124,6 +124,11 @@ SiAmController::initialize()
     romManager.addFolder(fs::path(romDir.toStdString()));
     romManager.scanFolders();
 
+    // Registering the listener and starting the emulator thread happen
+    // together. This has to come first, because the ROMs below are plugged
+    // in by the emulator thread.
+    core().launch(this, ::process);
+
     // There is no free, redistributable Kickstart ROM, so the stub plugs in
     // the AROS Kickstart replacement instead (open-source, bundled under
     // Shared/Assets/Roms and installed into the Rom library above just like
@@ -140,10 +145,6 @@ SiAmController::initialize()
     } else {
         qCWarning(siLog) << "Failed to locate the bundled AROS Kickstart extension.";
     }
-
-    // Registering the listener and starting the emulator thread happen
-    // together.
-    core().launch(this, ::process);
 
     /* Ask the emulator thread to snapshot every component as it runs.
      *
@@ -765,7 +766,7 @@ SiAmController::saveSnapshotAsync()
         emit busyChanged();
 
         // The core adds the snapshot to the manifest itself
-        core().amiga.saveSnapshotAsync(*svm);
+        core().amiga.saveSnapshotAsync(*svm, Compressor::LZ4);
         return true;
 
     } catch (const std::exception &e) {

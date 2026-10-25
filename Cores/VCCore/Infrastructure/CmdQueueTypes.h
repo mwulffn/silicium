@@ -56,6 +56,7 @@ enum class Cmd : long
     SAVE_WORKSPACE,         ///< Save the workspace to a folder (path attached)
     SAVE_SNAPSHOT,          ///< Save a snapshot to a file (path attached, value = compressor)
     HIBERNATE,              ///< Hibernate into an SVM (path attached, value = bit 0: snapshot, bit 1: workspace)
+    FLASH,                  ///< Flash a file into memory (path attached, value = item)
     
     // CPU
     CPU_BRK,                ///< Let the CPU execute a BRK instruction
@@ -83,6 +84,8 @@ enum class Cmd : long
     KEY_LOCK,               ///< Lock a key on the C64 keyboard
     KEY_UNLOCK,             ///< Unlock a key on the C64 keyboard
     KEY_UNLOCK_ALL,         ///< Unlock all keys on the C64 keyboard
+    KEY_ABORT_TYPING,       ///< Delete all pending keyboard events
+    KEY_AUTOTYPE,           ///< Type a string with the auto-typing daemon (text attached)
 
     // Mouse
     MOUSE_MOVE_ABS,         ///< Signal a mouse movement (absolute)
@@ -97,13 +100,16 @@ enum class Cmd : long
     DSK_TOGGLE_WP,          ///< Toggle write-protection
     DSK_MODIFIED,           ///< Signal that the disk has been saved
     DSK_UNMODIFIED,         ///< Signan that the disk needs saving
+    DSK_INSERT,             ///< Insert a disk (path attached, value = drive, value2 = write protection)
 
     // Datasette
     DATASETTE_PLAY,         ///< Press the datasette play key
     DATASETTE_STOP,         ///< Press the datasette stop key
     DATASETTE_REWIND,       ///< Rewind the tape
+    DATASETTE_INSERT,       ///< Insert a tape (path attached)
 
     // Cartridge
+    CRT_ATTACH,             ///< Attach a cartridge (path attached, value = reset)
     CRT_BUTTON_PRESS,       ///< Press a cartridge button
     CRT_BUTTON_RELEASE,     ///< Release a cartridge button
     CRT_SWITCH_LEFT,        ///< Pull the cartridge switch left
@@ -112,6 +118,12 @@ enum class Cmd : long
 
     // RetroShell
     RSH_EXECUTE,            ///< Execute a script command
+    RSH_PRESS_KEY,          ///< Type a special key into RetroShell (value = key, value2 = shift)
+    RSH_PRESS_CHAR,         ///< Type a character into RetroShell (value = character)
+    RSH_PRESS_TEXT,         ///< Type a string into RetroShell (text attached)
+
+    // Calls
+    CALL,                   ///< Run a function on the emulator thread (value2 = pointer to a std::function<void()> that stays alive until the command has been carried out)
 
     // Host machine
     FOCUS                   ///< The emulator windows got or lost focus
@@ -178,6 +190,8 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::KEY_LOCK:              return "KEY_LOCK";
             case Cmd::KEY_UNLOCK:            return "KEY_UNLOCK";
             case Cmd::KEY_UNLOCK_ALL:        return "KEY_UNLOCK_ALL";
+            case Cmd::KEY_ABORT_TYPING:      return "KEY_ABORT_TYPING";
+            case Cmd::KEY_AUTOTYPE:          return "KEY_AUTOTYPE";
 
             case Cmd::MOUSE_MOVE_ABS:        return "MOUSE_MOVE_ABS";
             case Cmd::MOUSE_MOVE_REL:        return "MOUSE_MOVE_REL";
@@ -189,6 +203,10 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::DSK_TOGGLE_WP:         return "DSK_TOGGLE_WP";
             case Cmd::DSK_MODIFIED:          return "DSK_MODIFIED";
             case Cmd::DSK_UNMODIFIED:        return "DSK_UNMODIFIED";
+            case Cmd::DSK_INSERT:            return "DSK_INSERT";
+            case Cmd::DATASETTE_INSERT:      return "DATASETTE_INSERT";
+            case Cmd::CRT_ATTACH:            return "CRT_ATTACH";
+            case Cmd::FLASH:                 return "FLASH";
 
             case Cmd::DATASETTE_PLAY:        return "DATASETTE_PLAY";
             case Cmd::DATASETTE_STOP:        return "DATASETTE_STOP";
@@ -201,7 +219,11 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::CRT_SWITCH_RIGHT:      return "CRT_SWITCH_RIGHT";
 
             case Cmd::RSH_EXECUTE:           return "RSH_EXECUTE";
+            case Cmd::RSH_PRESS_KEY:         return "RSH_PRESS_KEY";
+            case Cmd::RSH_PRESS_CHAR:        return "RSH_PRESS_CHAR";
+            case Cmd::RSH_PRESS_TEXT:        return "RSH_PRESS_TEXT";
 
+            case Cmd::CALL:                  return "CALL";
             case Cmd::FOCUS:                 return "FOCUS";
 
         }

@@ -505,8 +505,10 @@ CPUDebuggerAPI::loggedInstructions() const
 void
 CPUDebuggerAPI::clearLog()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    return cpu->debugger.clearLog();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        cpu->debugger.clearLog();
+    });
 }
 
 string
@@ -583,11 +585,11 @@ DeniseAPI::getCachedInfo() const
 //
 
 MemSrc
-MemoryDebuggerAPI::getMemSrc(Accessor acc, u32 addr) const
+MemoryDebuggerAPI::getMemSrc(Accessor src, u32 addr) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->getMemSrc<Accessor::CPU>(addr);
         case Accessor::AGNUS:    return mem->getMemSrc<Accessor::AGNUS>(addr);
@@ -606,11 +608,11 @@ MemoryDebuggerAPI::regName(u32 addr) const
 }
 
 u8
-MemoryDebuggerAPI::spypeek8(Accessor acc, u32 addr) const
+MemoryDebuggerAPI::spypeek8(Accessor src, u32 addr) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->spypeek8<Accessor::CPU>(addr);
         case Accessor::AGNUS:    return mem->spypeek8<Accessor::AGNUS>(addr);
@@ -621,11 +623,11 @@ MemoryDebuggerAPI::spypeek8(Accessor acc, u32 addr) const
 }
 
 u16
-MemoryDebuggerAPI::spypeek16(Accessor acc, u32 addr) const
+MemoryDebuggerAPI::spypeek16(Accessor src, u32 addr) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->spypeek16<Accessor::CPU>(addr);
         case Accessor::AGNUS:    return mem->spypeek16<Accessor::AGNUS>(addr);
@@ -636,11 +638,11 @@ MemoryDebuggerAPI::spypeek16(Accessor acc, u32 addr) const
 }
 
 string
-MemoryDebuggerAPI::ascDump(Accessor acc, u32 addr, isize bytes) const
+MemoryDebuggerAPI::ascDump(Accessor src, u32 addr, isize bytes) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->debugger.ascDump<Accessor::CPU>(addr, bytes);
         case Accessor::AGNUS:    return mem->debugger.ascDump<Accessor::AGNUS>(addr, bytes);
@@ -651,11 +653,11 @@ MemoryDebuggerAPI::ascDump(Accessor acc, u32 addr, isize bytes) const
 }
 
 string
-MemoryDebuggerAPI::hexDump(Accessor acc, u32 addr, isize bytes, isize sz) const
+MemoryDebuggerAPI::hexDump(Accessor src, u32 addr, isize bytes, isize sz) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->debugger.hexDump<Accessor::CPU>(addr, bytes, sz);
         case Accessor::AGNUS:    return mem->debugger.hexDump<Accessor::AGNUS>(addr, bytes, sz);
@@ -666,11 +668,11 @@ MemoryDebuggerAPI::hexDump(Accessor acc, u32 addr, isize bytes, isize sz) const
 }
 
 string
-MemoryDebuggerAPI::memDump(Accessor acc, u32 addr, isize bytes, isize sz) const
+MemoryDebuggerAPI::memDump(Accessor src, u32 addr, isize bytes, isize sz) const
 {
     VAMIGA_PUBLIC
     
-    switch (acc) {
+    switch (src) {
             
         case Accessor::CPU:      return mem->debugger.memDump<Accessor::CPU>(addr, bytes, sz);
         case Accessor::AGNUS:    return mem->debugger.memDump<Accessor::AGNUS>(addr, bytes, sz);
@@ -739,32 +741,40 @@ MemoryAPI::getExtTraits() const
 void
 MemoryAPI::loadRom(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->loadRom(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->loadRom(path);
+    });
     emu->markAsDirty();
 }
 
 void
 MemoryAPI::loadExt(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->loadExt(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->loadExt(path);
+    });
     emu->markAsDirty();
 }
 
 void
 MemoryAPI::loadRom(const u8 *buf, isize len)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->loadRom(buf, len);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->loadRom(buf, len);
+    });
     emu->markAsDirty();
 }
 
 void
 MemoryAPI::loadExt(const u8 *buf, isize len)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->loadExt(buf, len);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->loadExt(buf, len);
+    });
     emu->markAsDirty();
 }
 
@@ -792,24 +802,30 @@ MemoryAPI::saveExt(const fs::path &path)
 void
 MemoryAPI::deleteRom()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->deleteRom();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->deleteRom();
+    });
     emu->markAsDirty();
 }
 
 void
 MemoryAPI::deleteWom()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->deleteWom();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->deleteWom();
+    });
     emu->markAsDirty();
 }
 
 void
 MemoryAPI::deleteExt()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    mem->deleteExt();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        mem->deleteExt();
+    });
     emu->markAsDirty();
 }
 
@@ -910,8 +926,10 @@ RTCAPI::getConfig() const
 void
 RTCAPI::update()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    rtc->update();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        rtc->update();
+    });
     emu->markAsDirty();
 }
 
@@ -1122,6 +1140,18 @@ VideoPortAPI::getXrayTexture() const
     return (u32 *)emu->getXrayTexture().pixels.ptr;
 }
 
+const u32 *
+VideoPortAPI::getXrayTexture(isize *nr) const
+{
+    VAMIGA_PUBLIC
+
+    auto &texture = emu->getXrayTexture();
+
+    *nr = isize(texture.nr);
+
+    return (u32 *)texture.pixels.ptr;
+}
+
 void
 VideoPortAPI::saveTexture(const fs::path &path) const
 {
@@ -1270,7 +1300,7 @@ KeyboardAPI::unlock(KeyCode key, double delay)
 void KeyboardAPI::abortTyping()
 {
     VAMIGA_PUBLIC
-    keyboard->abortTyping();
+    emu->put(Cmd::KEY_ABORT_TYPING);
 }
 
 
@@ -1309,8 +1339,10 @@ FloppyDriveAPI::getFlag(DiskFlags mask) const
 void
 FloppyDriveAPI::setFlag(DiskFlags mask, bool value)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->setFlag(mask, value);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->setFlag(mask, value);
+    });
     emu->markAsDirty();
 }
 
@@ -1325,34 +1357,50 @@ void
 FloppyDriveAPI::insertBlankDisk(amiga::FSFormat fstype, amiga::BootBlockId bb,
                                 string name, const std::filesystem::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->insertNew(fstype, bb, name, path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->insertNew(fstype, bb, name, path);
+    });
     emu->markAsDirty();
 }
 
 void
 FloppyDriveAPI::insert(const fs::path &path, bool wp)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->swapDisk(path);
-    if (drive->disk) drive->disk->setWriteProtection(wp);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->swapDisk(path);
+        if (drive->disk) drive->disk->setWriteProtection(wp);
+    });
     emu->markAsDirty();
+}
+
+void
+FloppyDriveAPI::insertAsync(const fs::path &path, bool wp)
+{
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::DSK_INSERT, i64(drive->objid), i64(wp)), path.string());
 }
 
 void
 FloppyDriveAPI::insert(std::span<const u8> buffer, ImageFormat fmt, bool wp)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->swapDisk(buffer.data(), isize(buffer.size()), fmt);
-    if (drive->disk) drive->disk->setWriteProtection(wp);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->swapDisk(buffer.data(), isize(buffer.size()), fmt);
+        if (drive->disk) drive->disk->setWriteProtection(wp);
+    });
     emu->markAsDirty();
 }
 
 void
 FloppyDriveAPI::ejectDisk()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->ejectDisk();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->ejectDisk();
+    });
+    emu->markAsDirty();
 }
 
 void
@@ -1379,8 +1427,10 @@ FloppyDriveAPI::needsPersisting() const
 void
 FloppyDriveAPI::persist()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->persist();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->persist();
+    });
 }
 
 string
@@ -1447,8 +1497,10 @@ HardDriveAPI::getFlag(DiskFlags mask)
 void
 HardDriveAPI::setFlag(DiskFlags mask, bool value)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->setFlag(mask, value);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->setFlag(mask, value);
+    });
 }
 
 std::vector<std::tuple<isize,isize,isize>>
@@ -1461,30 +1513,42 @@ HardDriveAPI::geometries(isize numBlocks) const
 void 
 HardDriveAPI::changeGeometry(isize c, isize h, isize s, isize b)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    return drive->changeGeometry(c, h, s, b);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->changeGeometry(c, h, s, b);
+    });
+    emu->markAsDirty();
 }
 
 void
 HardDriveAPI::attach(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->init(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->init(path);
+    });
+    emu->markAsDirty();
 }
 
 void
 HardDriveAPI::attach(const fs::path &path, retro::vault::SVMFile &svm)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->init(path, svm);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->init(path, svm);
+    });
+    emu->markAsDirty();
 }
 
 void
 HardDriveAPI::create(retro::vault::SVMFile &svm, isize megabytes, amiga::FSFormat fs,
                      const string &name)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->create(svm, megabytes, fs, name);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->create(svm, megabytes, fs, name);
+    });
+    emu->markAsDirty();
 }
 
 void
@@ -1497,31 +1561,40 @@ HardDriveAPI::attachAsync(const fs::path &path, retro::vault::SVMFile &svm)
 void
 HardDriveAPI::attach(isize c, isize h, isize s, isize b)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    auto geometry = GeometryDescriptor(c, h, s, b);
-    drive->init(geometry);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        auto geometry = GeometryDescriptor(c, h, s, b);
+        drive->init(geometry);
+    });
+    emu->markAsDirty();
 }
 
 void 
 HardDriveAPI::format(amiga::FSFormat fs, const string &name)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->format(fs, FSName(name));
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->format(fs, FSName(name));
+    });
 }
 
 void
 HardDriveAPI::detach()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->detach();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->detach();
+    });
     emu->markAsDirty();
 }
 
 void
 HardDriveAPI::importFolder(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->importFolder(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->importFolder(path);
+    });
 }
 
 void
@@ -1541,22 +1614,28 @@ HardDriveAPI::path() const
 void
 HardDriveAPI::loadIntoMemory()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->loadIntoMemory();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->loadIntoMemory();
+    });
 }
 
 void
 HardDriveAPI::saveAs(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->saveAs(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->saveAs(path);
+    });
 }
 
 void
 HardDriveAPI::persist()
 {
-    VAMIGA_PUBLIC_SUSPEND
-    drive->persist();
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        drive->persist();
+    });
 }
 
 void
@@ -1703,14 +1782,14 @@ void
 MsgQueueAPI::lockMsgQueue()
 {
     VAMIGA_PUBLIC
-    return msgQueue->lock();
+    msgQueue->lock();
 }
 
 void
 MsgQueueAPI::unlockMsgQueue()
 {
     VAMIGA_PUBLIC
-    return msgQueue->unlock();
+    msgQueue->unlock();
 }
 
 //
@@ -1954,49 +2033,49 @@ RetroShellAPI::text() const
 void
 RetroShellAPI::press(RSKey key, bool shift)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    retroShell->press(key, shift);
+    VAMIGA_PUBLIC
+    emu->put(Command(Cmd::RSH_PRESS_KEY, i64(key), i64(shift)));
 }
 
 void
 RetroShellAPI::press(char c)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    retroShell->press(c);
+    VAMIGA_PUBLIC
+    emu->put(Cmd::RSH_PRESS_CHAR, i64(c));
 }
 
 void
 RetroShellAPI::press(const string &s)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    retroShell->press(s);
+    VAMIGA_PUBLIC
+    emu->put(Cmd::RSH_PRESS_TEXT, s);
 }
 
 void
 RetroShellAPI::execScriptAsync(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     retroShell->asyncExecScript(path);
 }
 
 void
 RetroShellAPI::execScriptAsync(std::stringstream &ss)
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     retroShell->asyncExecScript(ss);
 }
 
 void
 RetroShellAPI::execScriptAsync(const std::ifstream &fs)
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     retroShell->asyncExecScript(fs);
 }
 
 void
 RetroShellAPI::execScriptAsync(const string &contents)
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     retroShell->asyncExecScript(contents);
 }
 
@@ -2047,8 +2126,10 @@ RetroShellAPI::exportBlocks(const std::filesystem::path &path)
 void
 RetroShellAPI::setStream(std::ostream &os)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    retroShell->setStream(os);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        retroShell->setStream(os);
+    });
 }
 
 
@@ -2317,7 +2398,7 @@ void
 VAmiga::checkReady() const
 {
     VAMIGA_PUBLIC
-    return emu->checkReady();
+    emu->checkReady();
 }
 
 void
@@ -2419,6 +2500,9 @@ VAmiga::halt()
     
     // Nothing to do without a running emulator thread
     if (!emu->isLaunched()) return;
+
+    // A suspended thread cannot process the halt command, so waiting for it would never end
+    if (emu->isSuspended()) throw CoreError(CoreError::NOT_LAUNCHED, "The emulator thread is suspended.");
 
     // Signal the emulator to halt
     emu->put(Cmd::HALT);
@@ -2568,7 +2652,7 @@ VAmiga::get(Opt opt, isize id) const
 void
 VAmiga::setAsync(ConfigScheme model)
 {
-    VAMIGA_PUBLIC_SUSPEND
+    VAMIGA_PUBLIC
     putAsync(Cmd::CONFIG_SCHEME, (i64)model);
     emu->markAsDirty();
 }
@@ -2672,15 +2756,20 @@ VAmiga::putAsync(const Command &cmd, const std::string &str)
 std::unique_ptr<Snapshot>
 AmigaAPI::takeSnapshot(Compressor compressor, isize delay, bool repeat)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    return amiga->takeSnapshot(compressor, delay, repeat);
+    VAMIGA_PUBLIC
+
+    std::unique_ptr<Snapshot> result;
+    emu->call([&]{ result = amiga->takeSnapshot(compressor, delay, repeat); });
+    return result;
 }
 
 void
 AmigaAPI::loadWorkspace(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    amiga->loadWorkspace(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        amiga->loadWorkspace(path);
+    });
 }
 
 void
@@ -2700,8 +2789,10 @@ AmigaAPI::saveWorkspaceAsync(const fs::path &path) const
 void
 AmigaAPI::loadWorkspace(retro::vault::SVMFile &svm)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    amiga->loadWorkspace(svm);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        amiga->loadWorkspace(svm);
+    });
 }
 
 void
@@ -2721,62 +2812,63 @@ AmigaAPI::saveWorkspaceAsync(retro::vault::SVMFile &svm) const
 void
 AmigaAPI::loadSnapshot(const Snapshot &snapshot)
 {
-    VAMIGA_PUBLIC_SUSPEND
-
+    VAMIGA_PUBLIC
     emu->markAsDirty();
+    emu->call([&]{
+        try {
 
-    try {
+            // Restore the saved state
+            amiga->loadSnapshot(snapshot);
 
-        // Restore the saved state
-        amiga->loadSnapshot(snapshot);
+        } catch(Error &) {
 
-    } catch(Error &) {
-
-        /* If we reach this point, the emulator has been put into an
-         * inconsistent state due to corrupted snapshot data. We cannot
-         * continue emulation, because it would likely crash the
-         * application. Because we cannot revert to the old state either,
-         * we perform a hard reset to eliminate the inconsistency.
-         */
-        emu->put(Cmd::HARD_RESET);
-        throw;
-    }
+            /* If we reach this point, the emulator has been put into an
+             * inconsistent state due to corrupted snapshot data. We cannot
+             * continue emulation, because it would likely crash the
+             * application. Because we cannot revert to the old state either,
+             * we perform a hard reset to eliminate the inconsistency.
+             */
+            emu->put(Cmd::HARD_RESET);
+            throw;
+        }
+    });
 }
 
 void
 AmigaAPI::loadSnapshot(const fs::path &path)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    amiga->loadSnapshot(path);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        amiga->loadSnapshot(path);
+    });
 }
 
 void
-AmigaAPI::saveSnapshot(const fs::path &path) const
+AmigaAPI::saveSnapshot(const fs::path &path, Compressor compressor) const
 {
     VAMIGA_PUBLIC_SUSPEND
-    amiga->saveSnapshot(path);
-    
+    amiga->saveSnapshot(path, compressor);
 }
 
 void
-AmigaAPI::saveSnapshotAsync(const fs::path &path) const
+AmigaAPI::saveSnapshotAsync(const fs::path &path, Compressor compressor) const
 {
     VAMIGA_PUBLIC
-    emu->put(Cmd::SAVE_SNAPSHOT, path.string());
+    emu->put(Command(Cmd::SAVE_SNAPSHOT, i64(compressor)), path.string());
 }
 
 void
-AmigaAPI::saveSnapshot(retro::vault::SVMFile &svm) const
+AmigaAPI::saveSnapshot(retro::vault::SVMFile &svm, Compressor compressor) const
 {
     VAMIGA_PUBLIC_SUSPEND
-    amiga->saveSnapshot(svm);
+    amiga->saveSnapshot(svm, compressor);
 }
 
 void
-AmigaAPI::saveSnapshotAsync(retro::vault::SVMFile &svm) const
+AmigaAPI::saveSnapshotAsync(retro::vault::SVMFile &svm, Compressor compressor) const
 {
     VAMIGA_PUBLIC
-    emu->put(Command(Cmd::SAVE_SNAPSHOT, i64(0), i64(&svm)));
+    emu->put(Command(Cmd::SAVE_SNAPSHOT, i64(compressor), i64(&svm)));
 }
 
 void
@@ -2817,8 +2909,17 @@ AmigaAPI::getAutoInspectionMask() const
 void
 AmigaAPI::setAutoInspectionMask(u64 mask)
 {
-    VAMIGA_PUBLIC_SUSPEND
-    amiga->setAutoInspectionMask(mask);
+    VAMIGA_PUBLIC
+    emu->call([&]{
+        amiga->setAutoInspectionMask(mask);
+    });
+}
+
+void
+AmigaAPI::setAutoInspectionMaskAsync(u64 mask)
+{
+    VAMIGA_PUBLIC
+    emu->put(Cmd::INSPECTION_TARGET, i64(mask));
 }
 
 bool

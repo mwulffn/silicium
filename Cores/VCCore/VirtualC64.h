@@ -62,6 +62,25 @@ using peddle::RecordedInstruction;
  * the result matters.
  */
 
+/* Threading
+ *
+ * Functions of this API are called from threads other than the emulator
+ * thread. Requests that change the state of the emulator are carried out on
+ * the emulator thread, in the order in which they arrive:
+ *
+ *   plain name : The function waits until the emulator thread has carried
+ *                out the request and passes on failures as exceptions. It
+ *                throws a CoreError if the emulator thread has not been
+ *                launched (see launch()).
+ *   "Async"    : The function queues the request and returns at once.
+ *   input      : Keyboard, mouse, joystick and RetroShell input is queued.
+ *
+ * Functions that only read the state of the emulator or export it to a file
+ * (e.g., dump, disassemble, saveSnapshot) suspend the emulator thread for the
+ * duration of the call instead. A thread can also suspend the emulator
+ * itself with suspend() and resume().
+ */
+
 //
 // Base class for all APIs
 //
@@ -75,7 +94,23 @@ public:
     API() { }
     API(Emulator *emu) : emu(emu) { }
 
+    /** @brief  Suspends the emulator thread
+     *
+     *  Blocks until the emulator thread has stopped at a safe point, i.e.,
+     *  it is neither computing a frame nor processing its command queue. The
+     *  call can be nested: the thread continues once resume() has been called
+     *  as often as suspend(). Use it to read or modify the state of a
+     *  component that is not protected by the API itself.
+     *
+     *  Do not call it from the emulator thread. While the thread is
+     *  suspended, the blocking API functions (those that wait for the
+     *  emulator thread) refuse to work, and halt() cannot finish. Queued
+     *  requests wait in the queue until the thread continues.
+     */
     void suspend() const;
+
+    /** @brief  Resumes the emulator thread after a call to suspend()
+     */
     void resume() const;
 };
 
@@ -666,6 +701,10 @@ public:
      * 32 bit color value.
      */
     const u32 *getTexture() const;
+
+    /** @brief  Returns the most recent stable texture together with its frame number
+     *  @param  nr      Receives the frame number.
+     */
     const u32 *getTexture(isize *nr) const;
 
     /** @brief  Returns a pointer to the most recent stable X-Ray texture
@@ -673,6 +712,11 @@ public:
      * The texture has the same dimensions as the regular texture.
      */
     const u32 *getXrayTexture() const;
+
+    /** @brief  Returns the most recent stable X-Ray texture together with its frame number
+     *  @param  nr      Receives the frame number, which matches the number of
+     *                  the regular texture of the same frame.
+     */
     const u32 *getXrayTexture(isize *nr) const;
 
     /** @brief  Saves the most recent stable texture as a PNG file
@@ -971,6 +1015,13 @@ public:
      *  @throw Error if the file cannot be read or does not contain valid data.
      */
     void insertTape(const std::filesystem::path &path);
+    /** @brief  Asynchronous version of insertTape(): queues the request and returns at once.
+     *
+     *  The file is read on the emulator thread. Success and failure are both
+     *  reported by the usual message (e.g., CRT_ATTACHED). If the request
+     *  failed, the message carries the exception.
+     */
+    void insertTapeAsync(const std::filesystem::path &path);
 
     /** @brief  Ejects a tape.
      *  This function has no effect if no tape is inserted.
@@ -1105,6 +1156,13 @@ public:
      *  @throw Error if the file cannot be read or does not contain valid data.
      */
     void attachCartridge(const std::filesystem::path &path, bool reset = true);
+    /** @brief  Asynchronous version of attachCartridge(): queues the request and returns at once.
+     *
+     *  The file is read on the emulator thread. Success and failure are both
+     *  reported by the usual message (e.g., CRT_ATTACHED). If the request
+     *  failed, the message carries the exception.
+     */
+    void attachCartridgeAsync(const std::filesystem::path &path, bool reset = true);
 
     /** @brief  Attaches a RAM Expansion Unit to the expansion port.
      */
@@ -1206,6 +1264,13 @@ public:
      *  @throw Error if the file cannot be read or does not contain valid data.
      */
     void insert(const std::filesystem::path& path, bool wp);
+    /** @brief  Asynchronous version of insert(): queues the request and returns at once.
+     *
+     *  The file is read on the emulator thread. Success and failure are both
+     *  reported by the usual message (e.g., CRT_ATTACHED). If the request
+     *  failed, the message carries the exception.
+     */
+    void insertAsync(const std::filesystem::path& path, bool wp);
 
     /** @brief  Ejects the current disk.
      */
@@ -1652,6 +1717,9 @@ public:
      */
     void setAutoInspectionMask(u64 mask);
 
+    /// Asynchronous version of setAutoInspectionMask(): queues the request and returns at once.
+    void setAutoInspectionMaskAsync(u64 mask);
+
 
     /// @}
     /// @name Working with workspaces and snapshots
@@ -1838,9 +1906,24 @@ public:
     /** @brief  Flashes a file into memory
      */
     void flash(const std::filesystem::path &path, isize item = 0);
+    /** @brief  Asynchronous version of flash(): queues the request and returns at once.
+     *
+     *  The file is read on the emulator thread. Success and failure are both
+     *  reported by the usual message (e.g., CRT_ATTACHED). If the request
+     *  failed, the message carries the exception.
+     */
+    void flashAsync(const std::filesystem::path &path, isize item = 0);
+
+    /** @brief  Flashes an already loaded file into memory
+     *  @param  file    A ROM, snapshot, or program file.
+     *
+     *  @throw Error if the file type is not supported.
+     */
     void flashNew(const AnyFile &file);
-    
+
     /** @brief  Flashes a file from a collection into memory
+     *  @param  file    A T64, P00, or PRG file.
+     *  @param  item    Index of the item in the collection.
      */
     void flashNew(const AnyFile &file, isize item);
 };
@@ -2561,10 +2644,15 @@ public:
      *  The current configuration is exported in form of a RetroShell script.
      *  Reading in the script at a later point will restore the configuration.
      *
+     *  @param diff When set to true, the script will only contains settings
+     *              for items that differ from the default configuration.
+     *              This feature is useful for debugging to compare two virtual
+     *              machine configurations.
+     *
      *  @throw Error if the file cannot be written.
      */
-    void exportConfig(const std::filesystem::path &path) const;
-    void exportConfig(std::ostream &stream) const;
+    void exportConfig(const std::filesystem::path &path, bool diff = false) const;
+    void exportConfig(std::ostream &stream, bool diff = false) const;
 
 
     /// @}

@@ -55,6 +55,25 @@ using namespace retro::vault;
  * the result matters.
  */
 
+/* Threading
+ *
+ * Functions of this API are called from threads other than the emulator
+ * thread. Requests that change the state of the emulator are carried out on
+ * the emulator thread, in the order in which they arrive:
+ *
+ *   plain name : The function waits until the emulator thread has carried
+ *                out the request and passes on failures as exceptions. It
+ *                throws a CoreError if the emulator thread has not been
+ *                launched (see launch()).
+ *   "Async"    : The function queues the request and returns at once.
+ *   input      : Keyboard, mouse, joystick and RetroShell input is queued.
+ *
+ * Functions that only read the state of the emulator or export it to a file
+ * (e.g., dump, disassemble, saveSnapshot) suspend the emulator thread for the
+ * duration of the call instead. A thread can also suspend the emulator
+ * itself with suspend() and resume().
+ */
+
 //
 // Base class for all APIs
 //
@@ -68,7 +87,23 @@ public:
     API() { }
     API(Emulator *emu) : emu(emu) { }
 
+    /** @brief  Suspends the emulator thread
+     *
+     *  Blocks until the emulator thread has stopped at a safe point, i.e.,
+     *  it is neither computing a frame nor processing its command queue. The
+     *  call can be nested: the thread continues once resume() has been called
+     *  as often as suspend(). Use it to read or modify the state of a
+     *  component that is not protected by the API itself.
+     *
+     *  Do not call it from the emulator thread. While the thread is
+     *  suspended, the blocking API functions (those that wait for the
+     *  emulator thread) refuse to work, and halt() cannot finish. Queued
+     *  requests wait in the queue until the thread continues.
+     */
     void suspend() const;
+
+    /** @brief  Resumes the emulator thread after a call to suspend()
+     */
     void resume() const;
 };
 
@@ -198,11 +233,12 @@ public:
 
     /** @brief  Saves a snapshot to disk.
      *
-     *  @param  path    Destination path
+     *  @param  path        Destination path
+     *  @param  compressor  Compression method
      *
      *  @throw Error if the file cannot be written.
      */
-    void saveSnapshot(const std::filesystem::path &path) const;
+    void saveSnapshot(const std::filesystem::path &path, Compressor compressor) const;
 
     /** @brief  Saves a snapshot to disk asynchronously.
      *
@@ -210,9 +246,10 @@ public:
      *  when it processes its command queue. The function returns immediately.
      *  The GUI is informed by a SNAPSHOT_SAVED message.
      *
-     *  @param  path    Destination path
+     *  @param  path        Destination path
+     *  @param  compressor  Compression method
      */
-    void saveSnapshotAsync(const std::filesystem::path &path) const;
+    void saveSnapshotAsync(const std::filesystem::path &path, Compressor compressor) const;
 
     /** @brief  Saves a snapshot, including a screenshot, into an SVM
      *
@@ -224,8 +261,8 @@ public:
      *  @throw Error if the SVM file cannot be read or written, or if its content
      *  is invalid (synchronous versions).
      */
-    void saveSnapshot(retro::vault::SVMFile &svm) const;
-    void saveSnapshotAsync(retro::vault::SVMFile &svm) const;
+    void saveSnapshot(retro::vault::SVMFile &svm, Compressor compressor) const;
+    void saveSnapshotAsync(retro::vault::SVMFile &svm, Compressor compressor) const;
 
     /** @brief  Hibernates the machine into a virtual machine bundle
      *
@@ -292,6 +329,9 @@ public:
      *  @param  mask A bit mask indicating the components under inspection
      */
     void setAutoInspectionMask(u64 mask);
+
+    /// Asynchronous version of setAutoInspectionMask(): queues the request and returns at once.
+    void setAutoInspectionMaskAsync(u64 mask);
     
     /// @}
 };
@@ -712,6 +752,11 @@ public:
      */
     string disassembleRecorded(isize nr, const string &fmt, isize *len = nullptr) const;
 
+    /** @brief  Returns the name of an exception vector
+     *  @param  i       Vector number (0 ... 255)
+     *  @return A readable name (e.g., "Bus error"), or "Reserved" or a
+     *          generic name for vectors without a fixed meaning.
+     */
     string vectorName(isize i) const;
 };
 
@@ -789,7 +834,7 @@ public:
     /**  @brief  Returns the memory source for a given address
      *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
-    MemSrc getMemSrc(Accessor acc, u32 addr) const;
+    MemSrc getMemSrc(Accessor src, u32 addr) const;
     
     /** @brief  Returns the name of the custom chip register an address selects
      *
@@ -801,17 +846,17 @@ public:
     /** @brief  Reads a value from memory without causing side effects.
      *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
-    u8 spypeek8(Accessor acc, u32 addr) const;
-    u16 spypeek16(Accessor acc, u32 addr) const;
+    u8 spypeek8(Accessor src, u32 addr) const;
+    u16 spypeek16(Accessor src, u32 addr) const;
 
     /** @brief  Returns a string of characters for a portion of memory.
      *
-     *  @param  acc     The accessor used to read the bytes.
+     *  @param  src     The accessor used to read the bytes.
      *  @param  addr    First address to dump.
      *  @param  bytes   Number of bytes to dump.
      *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
-    string ascDump(Accessor acc, u32 addr, isize bytes) const;
+    string ascDump(Accessor src, u32 addr, isize bytes) const;
 
     /** @brief  Returns a string of numbers for a portion of memory.
      *
@@ -819,14 +864,14 @@ public:
      *  hexadecimal numbers followed by characters. Each group of 'sz' bytes
      *  forms one number and is followed by a space.
      *
-     *  @param  acc     The accessor used to read the bytes.
+     *  @param  src     The accessor used to read the bytes.
      *  @param  addr    First address to dump.
      *  @param  bytes   Number of bytes to dump.
      *  @param  sz      Group size in bytes (1, 2, or 4).
      *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
-    string hexDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
-    string memDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
+    string hexDump(Accessor src, u32 addr, isize bytes, isize sz = 1) const;
+    string memDump(Accessor src, u32 addr, isize bytes, isize sz = 1) const;
 
     /// @}
 };
@@ -1103,6 +1148,13 @@ public:
      *  @throw Error if the file cannot be read or does not contain valid data.
      */
     void insert(const std::filesystem::path& path, bool wp);
+    /** @brief  Asynchronous version of insert(): queues the request and returns at once.
+     *
+     *  The file is read on the emulator thread. Success and failure are both
+     *  reported by the usual message (e.g., CRT_ATTACHED). If the request
+     *  failed, the message carries the exception.
+     */
+    void insertAsync(const std::filesystem::path& path, bool wp);
 
     /** @brief  Inserts a disk created from an image stored in memory.
      *  @param  buffer  Buffer holding the raw image data.
@@ -1721,6 +1773,15 @@ public:
     const SerialPortInfo &getInfo() const;
     const SerialPortInfo &getCachedInfo() const;
 
+    /** @brief  Reads a printable character from the serial port buffers
+     *
+     *  readIncomingPrintableByte() reads from the data the port has received,
+     *  readOutgoingPrintableByte() from the data it has sent. The byte is
+     *  removed from the buffer. Characters that are neither printable nor a
+     *  line feed are skipped.
+     *
+     *  @return The character, or -1 if the buffer is empty.
+     */
     int readIncomingPrintableByte() const;
     int readOutgoingPrintableByte() const;
 };
@@ -1777,6 +1838,10 @@ public:
      * The texture dimensions are given by constants vamiga::Tex::width
      * and vamiga::Tex::height texels. Each texel is represented by a
      * 32 bit color value.
+     *
+     * The second version also returns the frame number (nr) and the
+     * long-frame flags of the frame and its predecessor (lof, prevlof), which
+     * are needed to weave the fields of an interlaced picture.
      */
     const u32 *getTexture() const;
     const u32 *getTexture(isize *nr, bool *lof, bool *prevlof) const;
@@ -1785,9 +1850,11 @@ public:
      *
      * The texture dimensions are given by constants vamiga::Tex::width
      * and vamiga::Tex::height texels. Each texel is represented by a
-     * 32 bit color value.
+     * 32 bit color value. The second version also returns the frame number
+     * (nr), which matches the number of the regular texture of the same frame.
      */
     const u32 *getXrayTexture() const;
+    const u32 *getXrayTexture(isize *nr) const;
 
     /** @brief  Saves the most recent stable texture as a PNG file
      *

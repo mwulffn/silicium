@@ -78,6 +78,7 @@ enum class Cmd : long
     KEY_TOGGLE,             ///< Press or release a key on the Amiga keyboard
     KEY_LOCK,               ///< Lock a key so it survives a release call
     KEY_UNLOCK,             ///< Unlock a previously locked key
+    KEY_ABORT_TYPING,       ///< Delete all pending keyboard events
 
     // Mouse
     MOUSE_MOVE_ABS,         ///< Signal a mouse movement (absolute)
@@ -92,12 +93,16 @@ enum class Cmd : long
     DSK_TOGGLE_WP,          ///< Toggle write-protection
     DSK_MODIFIED,           ///< Signal that the disk has been saved
     DSK_UNMODIFIED,         ///< Signan that the disk needs saving
+    DSK_INSERT,             ///< Insert a disk (path attached, value = drive, value2 = write protection)
     
     // RetroShell
     RSH_EXECUTE,            ///< Execute a script command
+    RSH_PRESS_KEY,          ///< Type a special key into RetroShell (value = key, value2 = shift)
+    RSH_PRESS_CHAR,         ///< Type a character into RetroShell (value = character)
+    RSH_PRESS_TEXT,         ///< Type a string into RetroShell (text attached)
     
-    // Experimental
-    FUNC,
+    // Calls
+    CALL,                   ///< Run a function on the emulator thread (value2 = pointer to a std::function<void()> that stays alive until the command has been carried out)
 
     // Host machine
     FOCUS                   ///< The emulator windows got or lost focus
@@ -162,6 +167,7 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::KEY_TOGGLE:            return "KEY_TOGGLE";
             case Cmd::KEY_LOCK:              return "KEY_LOCK";
             case Cmd::KEY_UNLOCK:            return "KEY_UNLOCK";
+            case Cmd::KEY_ABORT_TYPING:      return "KEY_ABORT_TYPING";
 
             case Cmd::MOUSE_MOVE_ABS:        return "MOUSE_MOVE_ABS";
             case Cmd::MOUSE_MOVE_REL:        return "MOUSE_MOVE_REL";
@@ -173,10 +179,14 @@ struct CmdEnum : Reflectable<CmdEnum, Cmd> {
             case Cmd::DSK_TOGGLE_WP:         return "DSK_TOGGLE_WP";
             case Cmd::DSK_MODIFIED:          return "DSK_MODIFIED";
             case Cmd::DSK_UNMODIFIED:        return "DSK_UNMODIFIED";
+            case Cmd::DSK_INSERT:            return "DSK_INSERT";
                 
             case Cmd::RSH_EXECUTE:           return "RSH_EXECUTE";
+            case Cmd::RSH_PRESS_KEY:         return "RSH_PRESS_KEY";
+            case Cmd::RSH_PRESS_CHAR:        return "RSH_PRESS_CHAR";
+            case Cmd::RSH_PRESS_TEXT:        return "RSH_PRESS_TEXT";
                 
-            case Cmd::FUNC:                  return "FUNC";
+            case Cmd::CALL:                  return "CALL";
             case Cmd::FOCUS:                 return "FOCUS";
 
         }

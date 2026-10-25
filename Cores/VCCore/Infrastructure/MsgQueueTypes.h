@@ -33,16 +33,15 @@ enum class Msg : long
     RUN,                ///< The emulator has entered ExecState::RUNNING
     PAUSE,              ///< The emulator has entered ExecState::PAUSED
     STEP,               ///< The emulator has stepped a single instruction
-    EOL_TRAP,           ///< The emulator has been paused at the end of the current line
-    EOF_TRAP,           ///< The emulator has been paused at the end of the current frame
+    EOL_REACHED,        ///< The emulator has been paused at the end of the current line
+    EOF_REACHED,        ///< The emulator has been paused at the end of the current frame
     RESET,              ///< The emulator has been reset
     SHUTDOWN,           ///< The emulator has been shut down
     ABORT,              ///< The emulator requests the GUI to quit the app
     WARP,               ///< The emulator has entered or exited warp mode
     TRACK,              ///< The emulator has entered or exited track mode
     MUTE,               ///< The emulator has been muted or unmuted
-    EASTER_EGG,
-
+    EASTER_EGG,         ///< The easter egg was triggered
     // Retro shell
     RSH_CLOSE,          ///< RetroShell has been closed
     RSH_UPDATE,         ///< RetroShell has generated new output
@@ -60,8 +59,7 @@ enum class Msg : long
     CPU_JAMMED,         ///< The CPU has halted due to an illegal instruction
 
     // VIC
-    PAL,                ///< The emulator runs in PAL mode now
-    NTSC,               ///< The emulator runs in NTSC mode now
+    VIDEO_FORMAT,       ///< The video format has changed (value = 0 for PAL, 1 for NTSC)
 
     // Serial Port (IEC Bus)
     SER_BUSY,           ///< The IEC bus is transferring data
@@ -147,8 +145,8 @@ struct MsgEnum : Reflectable<MsgEnum, Msg> {
             case Msg::RUN:                   return "RUN";
             case Msg::PAUSE:                 return "PAUSE";
             case Msg::STEP:                  return "STEP";
-            case Msg::EOL_TRAP:              return "EOL_TRAP";
-            case Msg::EOF_TRAP:              return "EOF_TRAP";
+            case Msg::EOL_REACHED:              return "EOL_REACHED";
+            case Msg::EOF_REACHED:              return "EOF_REACHED";
             case Msg::RESET:                 return "RESET";
             case Msg::SHUTDOWN:              return "SHUTDOWN";
             case Msg::ABORT:                 return "ABORT";
@@ -171,8 +169,7 @@ struct MsgEnum : Reflectable<MsgEnum, Msg> {
             case Msg::CPU_JUMPED:            return "CPU_JUMPED";
             case Msg::CPU_JAMMED:            return "CPU_JAMMED";
 
-            case Msg::PAL:                   return "PAL";
-            case Msg::NTSC:                  return "NTSC";
+            case Msg::VIDEO_FORMAT:          return "VIDEO_FORMAT";
 
             case Msg::SER_BUSY:              return "SER_BUSY";
             case Msg::SER_IDLE:              return "SER_IDLE";

@@ -784,6 +784,7 @@ public:
     /// @{
 
     /**  @brief  Returns the memory source for a given address
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
     MemSrc getMemSrc(Accessor acc, u32 addr) const;
     
@@ -795,6 +796,7 @@ public:
     const char *regName(u32 addr) const;
 
     /** @brief  Reads a value from memory without causing side effects.
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
     u8 spypeek8(Accessor acc, u32 addr) const;
     u16 spypeek16(Accessor acc, u32 addr) const;
@@ -804,6 +806,7 @@ public:
      *  @param  acc     The accessor used to read the bytes.
      *  @param  addr    First address to dump.
      *  @param  bytes   Number of bytes to dump.
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
     string ascDump(Accessor acc, u32 addr, isize bytes) const;
 
@@ -817,6 +820,7 @@ public:
      *  @param  addr    First address to dump.
      *  @param  bytes   Number of bytes to dump.
      *  @param  sz      Group size in bytes (1, 2, or 4).
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the accessor is invalid.
      */
     string hexDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
     string memDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
@@ -1789,7 +1793,24 @@ public:
     void saveXrayTexture(const std::filesystem::path &path,
                          isize x1, isize x2, isize y1, isize y2) const;
 
-    /** @brief Experimental
+    /** @brief  Determines the area of the texture that contains picture data.
+     *
+     *  The function analyzes the current stable texture. It starts with a large
+     *  box and shrinks it from all four sides as long as the outermost row or
+     *  column only consists of pixels in the border color (the color of the
+     *  pixel in the upper left corner of the box). The result can be used to
+     *  crop the border of the picture. The emulator thread is suspended while
+     *  the texture is analyzed. If the texture contains no picture data, all
+     *  coordinates are 0.
+     *
+     *  findInnerArea() returns the coordinates in texture pixels,
+     *  findInnerAreaNormalized() returns them relative to the size of the
+     *  texture (0.0 ... 1.0).
+     *
+     *  @param  x1      Left edge of the picture area
+     *  @param  x2      Right edge of the picture area
+     *  @param  y1      Top edge of the picture area
+     *  @param  y2      Bottom edge of the picture area
      */
     void findInnerArea(isize &x1, isize &x2, isize &y1, isize &y2) const;
     void findInnerAreaNormalized(double &x1, double &x2, double &y1, double &y2) const;
@@ -1829,28 +1850,6 @@ public:
      */
     // isize getMsg(isize count, Message *buffer);
 };
-
-//
-// Misc (Debugger)
-//
-
-class DebuggerAPI : public API {
-
-    friend class VAmiga;
-    
-public:
-
-    class Debugger *debugger = nullptr;
-    
-    /** @brief  Returns a string representations for a portion of memory.
-     */
-    /*
-    string ascDump(Accessor acc, u32 addr, isize bytes) const;
-    string hexDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
-    string memDump(Accessor acc, u32 addr, isize bytes, isize sz = 1) const;
-     */
-};
-
 
 //
 // Misc (Defaults)
@@ -2272,7 +2271,6 @@ public:
     
     // Misc
     MsgQueueAPI msgQueue;
-    DebuggerAPI debugger; // TODO: No longer needed? It's not 'wired'
     RemoteManagerAPI remoteManager;
     RetroShellAPI retroShell;
 

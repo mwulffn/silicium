@@ -1213,8 +1213,8 @@ C64Controller::process(const Message &msg, const string &attachment, std::except
             emit cpuStateChanged();
         }
 
-        case Msg::EOL_TRAP:
-        case Msg::EOF_TRAP: {
+        case Msg::EOL_REACHED:
+        case Msg::EOF_REACHED: {
 
             break;
         }
@@ -1285,8 +1285,7 @@ C64Controller::process(const Message &msg, const string &attachment, std::except
             break;
         }
 
-        case Msg::PAL:
-        case Msg::NTSC: {
+        case Msg::VIDEO_FORMAT: {
 
             break;
         }

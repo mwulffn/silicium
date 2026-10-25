@@ -50,7 +50,7 @@ using peddle::RecordedInstruction;
  *
  *   CoreError  : The request does not match the state of the emulator, e.g.,
  *                an invalid option value, a missing ROM, or an emulator thread
- *                that cannot carry out the request (see #Fault).
+ *                that cannot carry out the request (see #CoreError).
  *   IOError    : A file could not be accessed.
  *   MediaError : A ROM, snapshot, disk image or similar file is invalid or
  *                not supported.
@@ -65,7 +65,9 @@ using peddle::RecordedInstruction;
 // Base class for all APIs
 //
 
-struct API {
+class API {
+
+public:
 
     class Emulator *emu = nullptr;
 
@@ -78,7 +80,9 @@ struct API {
 
 /** Memory API
  */
-struct MemoryAPI : public API {
+class MemoryAPI : public API {
+
+public:
 
     class Memory *mem = nullptr;
 
@@ -112,7 +116,9 @@ struct MemoryAPI : public API {
 
 /** CPU API
  */
-struct CPUAPI : public API {
+class CPUAPI : public API {
+
+public:
 
     class CPU *cpu = nullptr;
 
@@ -203,7 +209,9 @@ struct CPUAPI : public API {
 
 /** CIA API
  */
-struct CIAAPI : public API {
+class CIAAPI : public API {
+
+public:
 
     class CIA *cia = nullptr;
 
@@ -239,7 +247,9 @@ struct CIAAPI : public API {
 
 /** VICII API
  */
-struct VICIIAPI : public API {
+class VICIIAPI : public API {
+
+public:
 
     class VICII *vicii = nullptr;
 
@@ -281,7 +291,9 @@ struct VICIIAPI : public API {
 
 /** SID Public API
  */
-struct SIDAPI : public API {
+class SIDAPI : public API {
+
+public:
 
     class SIDBridge *sidBridge = nullptr;
 
@@ -292,6 +304,8 @@ struct SIDAPI : public API {
      *  consistent if the emulator is paused or suspended. getCachedInfo()
      *  returns the snapshot the emulator thread has recorded most recently,
      *  which is the one to use while the emulator runs.
+     *
+     *  @throw  CoreError (#CoreError::OPT_INV_ARG) if the SID number is out of range.
      */
     SIDInfo getInfo(isize nr) const;
     SIDInfo getCachedInfo(isize nr) const;
@@ -312,7 +326,9 @@ struct SIDAPI : public API {
 
 /** Audio Port Public API
  */
-struct AudioPortAPI : public API {
+class AudioPortAPI : public API {
+
+public:
 
     class AudioPort *audioPort = nullptr;
 
@@ -382,7 +398,9 @@ struct AudioPortAPI : public API {
 
 /** Video Port Public API
  */
-struct VideoPortAPI : public API {
+class VideoPortAPI : public API {
+
+public:
 
     class VideoPort *videoPort = nullptr;
 
@@ -444,7 +462,9 @@ struct VideoPortAPI : public API {
 
 /** DMA Debugger Public API
  */
-struct XRayAPI : public API {
+class XRayAPI : public API {
+
+public:
 
     class XRay *xray = nullptr;
 
@@ -457,7 +477,9 @@ struct XRayAPI : public API {
 
 /** Keyboard Public API
  */
-struct KeyboardAPI : public API {
+class KeyboardAPI : public API {
+
+public:
 
     class Keyboard *keyboard = nullptr;
 
@@ -545,7 +567,9 @@ struct KeyboardAPI : public API {
 
 /** Mouse Public API
  */
-struct MouseAPI : public API {
+class MouseAPI : public API {
+
+public:
 
     class Mouse *mouse = nullptr;
 
@@ -598,7 +622,9 @@ struct MouseAPI : public API {
 
 /** Joystick Public API
  */
-struct JoystickAPI : public API {
+class JoystickAPI : public API {
+
+public:
 
     class Joystick *joystick = nullptr;
 
@@ -626,7 +652,9 @@ struct JoystickAPI : public API {
 
 /** Paddle Public API
  */
-struct PaddleAPI : public API {
+class PaddleAPI : public API {
+
+public:
 
     class Paddle *paddle = nullptr;
 
@@ -646,7 +674,9 @@ struct PaddleAPI : public API {
 
 /** Datasette Public API
  */
-struct DatasetteAPI : public API {
+class DatasetteAPI : public API {
+
+public:
 
     class Datasette *datasette = nullptr;
 
@@ -683,7 +713,9 @@ struct DatasetteAPI : public API {
 
 /** RS232 Public API
  */
-struct RS232API : public API {
+class RS232API : public API {
+
+public:
 
     class RS232 *rs232 = nullptr;
 
@@ -725,7 +757,9 @@ struct RS232API : public API {
 
 /** Control Port API
  */
-struct ControlPortAPI : public API {
+class ControlPortAPI : public API {
+
+public:
 
     class ControlPort *controlPort = nullptr;
 
@@ -745,7 +779,9 @@ struct ControlPortAPI : public API {
 
 /** User Port API
  */
-struct UserPortAPI : public API {
+class UserPortAPI : public API {
+
+public:
 
     class UserPort *userPort = nullptr;
 
@@ -757,7 +793,9 @@ struct UserPortAPI : public API {
 
 /** Expansion Port Public API
  */
-struct ExpansionPortAPI : public API {
+class ExpansionPortAPI : public API {
+
+public:
 
     class ExpansionPort *expansionPort = nullptr;
 
@@ -824,7 +862,9 @@ struct ExpansionPortAPI : public API {
 // Serial port (IEC bus)
 //
 
-struct SerialPortAPI : public API {
+class SerialPortAPI : public API {
+
+public:
 
     class SerialPort *serialPort = nullptr;
 
@@ -837,7 +877,9 @@ struct SerialPortAPI : public API {
 
 /** Disk Public API
  */
-struct DiskAPI : public API {
+class DiskAPI : public API {
+
+public:
 
     class Drive *drive = nullptr;
 
@@ -854,7 +896,9 @@ struct DiskAPI : public API {
 
 /** Drive Public API
  */
-struct DriveAPI : public API {
+class DriveAPI : public API {
+
+public:
 
     class Drive *drive = nullptr;
 
@@ -908,7 +952,9 @@ struct DriveAPI : public API {
 
 /** RemoteManager Public API
  */
-struct RemoteManagerAPI : public API {
+class RemoteManagerAPI : public API {
+
+public:
 
     class RemoteManager *remoteManager = nullptr;
 
@@ -946,7 +992,9 @@ struct RemoteManagerAPI : public API {
 
 /** RetroShell Public API
  */
-struct RetroShellAPI : public API {
+class RetroShellAPI : public API {
+
+public:
 
     class RetroShell *retroShell = nullptr;
 
@@ -1018,9 +1066,10 @@ struct RetroShellAPI : public API {
     /** @brief  Executes a script.
      *  The script is executed asynchronously. However, RetroShell will
      *  send messages back to the GUI thread to inform about the execution
-     *  state. After the last script command has been executed,
-     *  MSG\_SCRIPT\_DONE is sent. If shell execution has been aborted due
-     *  to an error, MSG\_SCRIPT\_ABORT is sent.
+     *  state. After the last pending command has been executed,
+     *  Msg::RSH_DONE is sent. If a command fails, the remaining commands are
+     *  dropped and Msg::RSH_ERROR is sent instead. A 'wait' command postpones
+     *  the rest of the script and sends Msg::RSH_WAIT.
      *
      *  @throw Error if the file cannot be opened.
      */
@@ -1057,7 +1106,9 @@ struct RetroShellAPI : public API {
  *    storing shader-relevant parameters that are irrelevant to the emulation
  *    core.
  */
-struct DefaultsAPI : public API {
+class DefaultsAPI : public API {
+
+public:
 
     class Defaults *defaults = nullptr;
 
@@ -1246,7 +1297,9 @@ struct DefaultsAPI : public API {
 
 /** C64 API
  */
-struct C64API : public API {
+class C64API : public API {
+
+public:
 
     class C64 *c64 = nullptr;
 
@@ -1523,7 +1576,9 @@ struct C64API : public API {
  * VICII API provides additional functions that interact directly with the
  * VICII graphics chip.
  */
-struct VirtualC64 : public API {
+class VirtualC64 : public API {
+
+public:
 
     static DefaultsAPI defaults;
 
@@ -1674,7 +1729,7 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use powerOnAsync() in these situations.
@@ -1696,7 +1751,7 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use powerOffAsync() in these situations.
@@ -1722,7 +1777,7 @@ struct VirtualC64 : public API {
      *
      *  The function returns when the emulator has been started.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use runAsync() in these situations.
@@ -1747,7 +1802,7 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use pauseAsync() in these situations.
@@ -1773,7 +1828,7 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use hardResetAsync() in these situations.
@@ -1795,7 +1850,7 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use softResetAsync() in these situations.
@@ -1830,12 +1885,12 @@ struct VirtualC64 : public API {
      *  requested it. Valid sources are 0 to 6.
      *
      *  @param  source      The client requesting the change.
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      *
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use warpOnAsync() in these situations.
@@ -1847,7 +1902,7 @@ struct VirtualC64 : public API {
      *  This is the asynchronous counterpart of warpOn(). The request is queued and
      *  carried out by the emulator thread at some later time (see sync()).
      *
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      */
     void warpOnAsync(isize source);
 
@@ -1858,12 +1913,12 @@ struct VirtualC64 : public API {
      *  on to implement the warp mode option). Valid sources are 0 to 6.
      *
      *  @param  source      The client requesting the change.
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      *
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use warpOffAsync() in these situations.
@@ -1875,7 +1930,7 @@ struct VirtualC64 : public API {
      *  This is the asynchronous counterpart of warpOff(). The request is queued and
      *  carried out by the emulator thread at some later time (see sync()).
      *
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      */
     void warpOffAsync(isize source);
 
@@ -1886,12 +1941,12 @@ struct VirtualC64 : public API {
      *  requested it. Valid sources are 0 to 6.
      *
      *  @param  source      The client requesting the change.
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      *
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use trackOnAsync() in these situations.
@@ -1903,7 +1958,7 @@ struct VirtualC64 : public API {
      *  This is the asynchronous counterpart of trackOn(). The request is queued and
      *  carried out by the emulator thread at some later time (see sync()).
      *
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      */
     void trackOnAsync(isize source);
 
@@ -1913,12 +1968,12 @@ struct VirtualC64 : public API {
      *  when no other source requests it. Valid sources are 0 to 6.
      *
      *  @param  source      The client requesting the change.
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      *
      *  The function returns when the emulator thread has carried out the
      *  request. A failure throws the corresponding exception.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use trackOffAsync() in these situations.
@@ -1930,7 +1985,7 @@ struct VirtualC64 : public API {
      *  This is the asynchronous counterpart of trackOff(). The request is queued and
      *  carried out by the emulator thread at some later time (see sync()).
      *
-     *  @throw CoreError (#Fault::OPT_INV_ARG) if the source is out of range.
+     *  @throw CoreError (#CoreError::OPT_INV_ARG) if the source is out of range.
      */
     void trackOffAsync(isize source);
 
@@ -1948,9 +2003,9 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator has been started for the step. It
      *  is paused again when the step is done.
      *
-     *  @throw CoreError (#Fault::RUNNING) if the emulator is already running.
+     *  @throw CoreError (#CoreError::RUNNING) if the emulator is already running.
      *  @throw CoreError if the emulator is not ready to run (see checkReady()).
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request (see put()).
      */
     void stepInto();
@@ -1975,9 +2030,9 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator has been started for the step. It
      *  is paused again when the step is done.
      *
-     *  @throw CoreError (#Fault::RUNNING) if the emulator is already running.
+     *  @throw CoreError (#CoreError::RUNNING) if the emulator is already running.
      *  @throw CoreError if the emulator is not ready to run (see checkReady()).
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request (see put()).
      */
     void stepOver();
@@ -1989,9 +2044,9 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator has been started for the step. It
      *  is paused again when the step is done.
      *
-     *  @throw CoreError (#Fault::RUNNING) if the emulator is already running.
+     *  @throw CoreError (#CoreError::RUNNING) if the emulator is already running.
      *  @throw CoreError if the emulator is not ready to run (see checkReady()).
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request (see put()).
      */
     void stepCycle();
@@ -2003,9 +2058,9 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator has been started for the step. It
      *  is paused again when the step is done.
      *
-     *  @throw CoreError (#Fault::RUNNING) if the emulator is already running.
+     *  @throw CoreError (#CoreError::RUNNING) if the emulator is already running.
      *  @throw CoreError if the emulator is not ready to run (see checkReady()).
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request (see put()).
      */
     void finishLine();
@@ -2017,9 +2072,9 @@ struct VirtualC64 : public API {
      *  The function returns when the emulator has been started for the step. It
      *  is paused again when the step is done.
      *
-     *  @throw CoreError (#Fault::RUNNING) if the emulator is already running.
+     *  @throw CoreError (#CoreError::RUNNING) if the emulator is already running.
      *  @throw CoreError if the emulator is not ready to run (see checkReady()).
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request (see put()).
      */
     void finishFrame();
@@ -2046,7 +2101,7 @@ struct VirtualC64 : public API {
      *  the configuration, can still see the old state. Calling this
      *  afterwards closes that gap.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out commands, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread.
@@ -2077,9 +2132,9 @@ struct VirtualC64 : public API {
      *  registered here is invoked on the emulator thread and must not call into
      *  the API. Forward the message to a user thread instead.
      *
-     *  @throw CoreError (#Fault::ALREADY_LAUNCHED) if the emulator thread has
+     *  @throw CoreError (#CoreError::ALREADY_LAUNCHED) if the emulator thread has
      *  already been launched.
-     *  @throw CoreError (#Fault::LAUNCH_FAILED) if the emulator thread could not
+     *  @throw CoreError (#CoreError::LAUNCH_FAILED) if the emulator thread could not
      *  be launched.
      */
     void launch(const void *listener = nullptr, Callback *func = nullptr);
@@ -2143,7 +2198,7 @@ struct VirtualC64 : public API {
      *
      *  @note If this function is called for an options that applies to multiple
      *  components, all components are configured with the specified value.
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the request, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use setAsync() in these situations (it can also be called before
@@ -2250,7 +2305,7 @@ struct VirtualC64 : public API {
      *  Commands that carry a pointer to an object of the caller can rely on
      *  that object being alive for the whole duration of the command.
      *
-     *  @throw CoreError (#Fault::NOT_LAUNCHED) if the emulator thread cannot
+     *  @throw CoreError (#CoreError::NOT_LAUNCHED) if the emulator thread cannot
      *  carry out the command, because it has not been launched yet, is halted or
      *  suspended. The same applies if the function is called from the emulator
      *  thread. Use putAsync() in these situations (it can also be called before

@@ -1154,24 +1154,13 @@ SiAmController::joystickMotion(int port, u64 timestamp, bool state[5], bool prev
 {
     if (port != 0 && port != 1) return;
 
-    // The state is ordered up, down, left, right, fire. Only changes are
-    // forwarded: pressing fire again would toggle autofire, for example.
+    // The state is ordered up, down, left, right, fire. The core forwards the
+    // fire button only if it differs in the previous state, because pressing
+    // it again would toggle autofire.
     auto &joystick = port == 0 ? core().controlPort1.joystick : core().controlPort2.joystick;
 
-    if (state[0] != prev[0] || state[1] != prev[1]) {
-
-        joystick.trigger(state[0] ? GamePadAction::PULL_UP :
-                         state[1] ? GamePadAction::PULL_DOWN : GamePadAction::RELEASE_Y);
-    }
-    if (state[2] != prev[2] || state[3] != prev[3]) {
-
-        joystick.trigger(state[2] ? GamePadAction::PULL_LEFT :
-                         state[3] ? GamePadAction::PULL_RIGHT : GamePadAction::RELEASE_X);
-    }
-    if (state[4] != prev[4]) {
-
-        joystick.trigger(state[4] ? GamePadAction::PRESS_FIRE : GamePadAction::RELEASE_FIRE);
-    }
+    joystick.trigger({ state[0], state[1], state[2], state[3], state[4] },
+                     { prev[0], prev[1], prev[2], prev[3], prev[4] });
 }
 
 bool

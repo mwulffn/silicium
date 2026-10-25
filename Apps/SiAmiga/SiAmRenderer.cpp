@@ -17,8 +17,8 @@
 #include <QQuickWindow>
 #include <QSGTexture>
 
-static constexpr isize texWidth  = 2 * vamiga::HPIXELS;
-static constexpr isize texHeight = vamiga::VPIXELS;
+static constexpr isize texWidth  = vamiga::Tex::width;
+static constexpr isize texHeight = vamiga::Tex::height;
 
 void
 SiAmRenderer::setController(SiAmController *ptr)

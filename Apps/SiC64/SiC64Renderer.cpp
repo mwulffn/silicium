@@ -143,12 +143,13 @@ SiC64Renderer::tick()
 
     // Update texture
     core.videoPort.lockTexture();
-    tex = const_cast<u32 *>(core.videoPort.getTexture(&nr, &width, &height));
+    tex = const_cast<u32 *>(core.videoPort.getTexture(&nr));
+    width = vc64::Tex::width;
+    height = vc64::Tex::height;
     xrayTex = nullptr;
     if (blend) {
-        isize xrayNr, xrayWidth, xrayHeight;
-        auto *xray = core.videoPort.getXrayTexture(&xrayNr, &xrayWidth, &xrayHeight);
-        if (xrayWidth == width && xrayHeight == height) xrayTex = const_cast<u32 *>(xray);
+        isize xrayNr;
+        xrayTex = const_cast<u32 *>(core.videoPort.getXrayTexture(&xrayNr));
     }
     core.videoPort.unlockTexture();
 
@@ -291,13 +292,12 @@ SiC64Renderer::grabScreenshot() const
     // because it runs almost immediately on the same thread cadence), this
     // can be called at an arbitrary time from the GUI thread, so the pixel
     // data must be copied out while the emulator thread is held off.
-    isize texNr, texWidth, texHeight;
     core.videoPort.lockTexture();
-    const u32 *src = core.videoPort.getTexture(&texNr, &texWidth, &texHeight);
+    const u32 *src = core.videoPort.getTexture();
     QImage grabbed;
-    if (src && texWidth > 0 && texHeight > 0) {
+    if (src) {
         grabbed = QImage(reinterpret_cast<const uchar *>(src),
-                          (int)texWidth, (int)texHeight, QImage::Format_ARGB32).copy();
+                          (int)vc64::Tex::width, (int)vc64::Tex::height, QImage::Format_ARGB32).copy();
     }
     core.videoPort.unlockTexture();
 

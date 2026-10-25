@@ -1512,14 +1512,12 @@ VideoPortAPI::getTexture() const
 }
 
 const u32 *
-VideoPortAPI::getTexture(isize *nr, isize *width, isize *height) const
+VideoPortAPI::getTexture(isize *nr) const
 {
     VC64_PUBLIC
     auto &texture = emu->getTexture();
 
     *nr = isize(texture.nr);
-    *width = isize(Texture::width);
-    *height = isize(Texture::height);
 
     return (u32 *)texture.pixels.ptr;
 }
@@ -1532,14 +1530,12 @@ VideoPortAPI::getXrayTexture() const
 }
 
 const u32 *
-VideoPortAPI::getXrayTexture(isize *nr, isize *width, isize *height) const
+VideoPortAPI::getXrayTexture(isize *nr) const
 {
     VC64_PUBLIC
     auto &texture = emu->getXrayTexture();
 
     *nr = isize(texture.nr);
-    *width = isize(Texture::width);
-    *height = isize(Texture::height);
 
     return (u32 *)texture.pixels.ptr;
 }
@@ -1670,24 +1666,24 @@ KeyboardAPI::isLocked(C64Key key) const
 }
 
 void
-KeyboardAPI::lock(C64Key key)
+KeyboardAPI::lock(C64Key key, double delay)
 {
-    VC64_PUBLIC_SUSPEND
-    keyboard->lock(key);
+    VC64_PUBLIC
+    emu->put(Command(Cmd::KEY_LOCK, KeyCmd { .keycode = (u8)key.nr, .delay = delay }));
 }
 
 void
-KeyboardAPI::unlock(C64Key key)
+KeyboardAPI::unlock(C64Key key, double delay)
 {
-    VC64_PUBLIC_SUSPEND
-    keyboard->unlock(key);
+    VC64_PUBLIC
+    emu->put(Command(Cmd::KEY_UNLOCK, KeyCmd { .keycode = (u8)key.nr, .delay = delay }));
 }
 
 void
-KeyboardAPI::unlockAll()
+KeyboardAPI::unlockAll(double delay)
 {
-    VC64_PUBLIC_SUSPEND
-    keyboard->unlockAll();
+    VC64_PUBLIC
+    emu->put(Command(Cmd::KEY_UNLOCK_ALL, KeyCmd { .delay = delay }));
 }
 
 void
@@ -1740,10 +1736,18 @@ JoystickAPI::trigger(GamePadAction event)
 }
 
 void
-JoystickAPI::trigger(bool state[5])
+JoystickAPI::trigger(const std::array<bool, 5> &state, const std::array<bool, 5> &previous)
 {
     VC64_PUBLIC
-    joystick->trigger(state);
+
+    u32 mask = 0;
+    for (usize i = 0; i < 5; i++) {
+
+        if (state[i]) mask |= 1u << i;
+        if (previous[i]) mask |= 1u << (i + 8);
+    }
+
+    emu->put(Command(Cmd::JOY_STATE, JoyStateCmd { .port = joystick->objid, .state = mask }));
 }
 
 

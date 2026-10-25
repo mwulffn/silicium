@@ -616,7 +616,8 @@ C64Controller::joystickMotion(int port, u64 timestamp, bool state[5], bool prev[
 {
     auto &cp = port == 0 ? core().controlPort1 : core().controlPort2;
 
-    cp.joystick.trigger(state);
+    cp.joystick.trigger({ state[0], state[1], state[2], state[3], state[4] },
+                        { prev[0], prev[1], prev[2], prev[3], prev[4] });
 }
 
 void

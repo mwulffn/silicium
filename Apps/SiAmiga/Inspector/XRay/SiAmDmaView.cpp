@@ -15,8 +15,8 @@
 #include <QQuickWindow>
 #include <QSGSimpleTextureNode>
 
-static constexpr isize texWidth  = 2 * vamiga::HPIXELS;
-static constexpr isize texHeight = vamiga::VPIXELS;
+static constexpr isize texWidth  = vamiga::Tex::width;
+static constexpr isize texHeight = vamiga::Tex::height;
 
 SiAmDmaView::SiAmDmaView(QQuickItem *parent)
     : QQuickItem(parent)

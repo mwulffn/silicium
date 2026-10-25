@@ -12,6 +12,7 @@
 #include "VAmigaTypes.h"
 #include "CoreError.h"
 #include "Snapshot.h"
+#include <array>
 #include <span>
 
 namespace retro::vault::amiga { class FileSystem; }
@@ -1401,6 +1402,18 @@ public:
     /** @brief  Triggers a joystick action.
      */
     void trigger(GamePadAction event);
+
+    /** @brief  Sets the complete joystick state.
+     *
+     *  The states are ordered up, down, left, right, fire. The directions are
+     *  applied as given, which is harmless to repeat. The fire button is only
+     *  forwarded if it differs in 'previous', because pressing it again would
+     *  toggle autofire. Pass the state that was reported by the previous call.
+     *
+     *  @param  state       The new states of up, down, left, right, and fire.
+     *  @param  previous    The previous states.
+     */
+    void trigger(const std::array<bool, 5> &state, const std::array<bool, 5> &previous);
 };
 
 
@@ -1458,8 +1471,9 @@ public:
     void release(KeyCode key, double delay = 0.0);
 
     /** @brief  Releases all currently pressed keys
+     *  @param  delay   An optional delay in seconds.
      */
-    void releaseAll();
+    void releaseAll(double delay = 0.0);
 
     /** @brief  Checks if a key is currently locked.
      *  @param  key     The key to check.
@@ -1758,8 +1772,8 @@ public:
 
     /** @brief  Returns a pointer to the most recent stable texture
      *
-     * The texture dimensions are given by constants vamiga::Texture::width
-     * and vamiga::Texture::height texels. Each texel is represented by a
+     * The texture dimensions are given by constants vamiga::Tex::width
+     * and vamiga::Tex::height texels. Each texel is represented by a
      * 32 bit color value.
      */
     const u32 *getTexture() const;
@@ -1767,8 +1781,8 @@ public:
 
     /** @brief  Returns a pointer to the most recent stable X-Ray texture
      *
-     * The texture dimensions are given by constants vamiga::Texture::width
-     * and vamiga::Texture::height texels. Each texel is represented by a
+     * The texture dimensions are given by constants vamiga::Tex::width
+     * and vamiga::Tex::height texels. Each texel is represented by a
      * 32 bit color value.
      */
     const u32 *getXrayTexture() const;

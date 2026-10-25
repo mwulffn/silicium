@@ -59,16 +59,14 @@ SiC64DmaView::grab()
 {
     auto &videoPort = C64Controller::core().videoPort;
 
-    isize nr = 0, w = 0, h = 0;
-
     videoPort.lockTexture();
-    const u32 *tex = videoPort.getXrayTexture(&nr, &w, &h);
+    const u32 *tex = videoPort.getXrayTexture();
 
-    if (tex && w > 0 && h > 0) {
+    if (tex) {
 
-        buffer.assign(tex, tex + (w * h));
-        width = int(w);
-        height = int(h);
+        buffer.assign(tex, tex + (vc64::Tex::width * vc64::Tex::height));
+        width = int(vc64::Tex::width);
+        height = int(vc64::Tex::height);
     }
     videoPort.unlockTexture();
 }

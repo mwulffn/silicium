@@ -19,15 +19,20 @@ int main(int argc, char *argv[])
 
     } catch (vamiga::UsageError &e) {
 
-        std::cout << "Usage: SiAmigaScript [-vm] [-e <command>]..." << std::endl;
+        std::cout << "Usage: SiAmigaScript [-vm] [-e <command>]... [<script>]" << std::endl;
         std::cout << std::endl;
         std::cout << "       -e or --exec <command>  Execute a RetroShell command at startup" << std::endl;
         std::cout << "       -v or --verbose         Print the RetroShell output" << std::endl;
         std::cout << "       -m or --messages        Observe the message queue" << std::endl;
+        std::cout << "       <script>                Run a Lua script after the commands" << std::endl;
         std::cout << std::endl;
         std::cout << "       Example: SiAmigaScript -e \"amiga init A500_OCS_1MB\" -e \"mem load rom kick.rom\"" << std::endl;
         std::cout << std::endl;
         std::cout << e.what() << std::endl;
+
+    } catch (vamiga::ScriptError &e) {
+
+        std::cout << "Script Error: " << e.what() << std::endl;
 
     } catch (vamiga::CoreError &e) {
 

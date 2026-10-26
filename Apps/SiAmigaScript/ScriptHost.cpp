@@ -31,6 +31,9 @@ ScriptHost::main(int argc, char *argv[])
     // Set up the Amiga
     execCommands();
 
+    // Run the script
+    if (returnCode == 0 && keys.find("script") != keys.end()) lua.runFile(keys["script"]);
+
     emulator->removeListener();
     emulator->halt();
     return returnCode;
@@ -53,7 +56,12 @@ ScriptHost::parseArguments(int argc, char *argv[])
             continue;
         }
 
-        throw UsageError("Invalid option '" + arg + "'");
+        if (arg[0] == '-') throw UsageError("Invalid option '" + arg + "'");
+
+        // The only argument which is not an option is the script
+        if (keys.find("script") != keys.end()) throw UsageError("More than one script is given");
+        if (!utl::fileExists(arg)) throw UsageError("File " + arg + " does not exist");
+        keys["script"] = arg;
     }
 }
 

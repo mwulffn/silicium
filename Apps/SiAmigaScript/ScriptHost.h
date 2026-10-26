@@ -11,6 +11,7 @@
 #pragma once
 
 #include "VAmiga.h"
+#include "LuaEngine.h"
 #include "utl/concurrency.h"
 #include <map>
 #include <memory>
@@ -37,6 +38,9 @@ class ScriptHost : Wakeable {
     // The emulator (created when the command line has been checked, as it
     // cannot be destroyed without having been launched, see MissingAPI.md)
     std::unique_ptr<VAmiga> emulator;
+
+    // The interpreter which runs the script
+    LuaEngine lua;
 
     // Return code
     int returnCode = 0;

@@ -22,4 +22,15 @@ namespace vamiga {
  */
 std::optional<KeyCode> keyCode(const string &name);
 
+// A key which types a character on a US keyboard, with or without shift
+struct TypedKey {
+
+    KeyCode code;
+    bool shift;
+};
+
+// Returns the key which types a character, if there is one. Besides the
+// printable characters, '\n' is typed with Return and '\t' with Tab.
+std::optional<TypedKey> typedKey(char c);
+
 }

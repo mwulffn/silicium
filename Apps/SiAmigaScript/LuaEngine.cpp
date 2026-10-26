@@ -13,6 +13,7 @@
 #include "Internals.h"
 #include "Keys.h"
 #include "lua.hpp"
+#include <cctype>
 #include <cstring>
 
 namespace vamiga {
@@ -268,12 +269,61 @@ keyboard_pressed(lua_State *L)
     return 1;
 }
 
+/* keyboard.type(text) types the text on a US keyboard and returns the number
+ * of frames this takes. The keys are scheduled in emulated time and pressed
+ * while the emulator runs, so a script continues with
+ * emu.wait_frames(keyboard.type(text)).
+ */
+static int
+keyboard_type(lua_State *L)
+{
+    // Each character takes five frames: shift (if needed) goes down, then the
+    // key one frame later, which is held for two frames, then shift goes up
+    constexpr isize framesPerKey = 5;
+
+    size_t length;
+    auto text = luaL_checklstring(L, 1, &length);
+
+    // Check the whole text before anything is typed
+    for (size_t i = 0; i < length; i++) {
+        if (!typedKey(text[i])) {
+
+            auto c = (unsigned char)text[i];
+            auto message = isprint(c) ?
+                lua_pushfstring(L, "cannot type '%c'", c) :
+                lua_pushfstring(L, "cannot type the character with code %d", c);
+            return luaL_argerror(L, 1, message);
+        }
+    }
+
+    call(L, [&] {
+
+        auto &vamiga = host(L).getEmulator();
+        auto frame = vamiga.amiga.getConfig().type == TV::PAL ? 1.0 / 50 : 1.0 / 60;
+        auto shift = *keyCode("lshift");
+
+        for (size_t i = 0; i < length; i++) {
+
+            auto key = *typedKey(text[i]);
+            auto start = double(i * framesPerKey) * frame;
+
+            if (key.shift) vamiga.keyboard.press(shift, start, 4 * frame);
+            vamiga.keyboard.press(key.code, start + frame, 2 * frame);
+        }
+    });
+
+    // One frame more, so that the last key has been released
+    lua_pushinteger(L, lua_Integer(length) * framesPerKey + (length ? 1 : 0));
+    return 1;
+}
+
 static const luaL_Reg keyboardFunctions[] = {
 
     { "press", keyboard_press },
     { "release", keyboard_release },
     { "release_all", keyboard_release_all },
     { "pressed", keyboard_pressed },
+    { "type", keyboard_type },
     { nullptr, nullptr }
 };
 

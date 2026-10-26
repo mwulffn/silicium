@@ -65,4 +65,34 @@ keyCode(const string &name)
     return std::nullopt;
 }
 
+// The characters which are typed with shift on a US keyboard, and the names of
+// their keys
+static const std::map<char, string> shifted = {
+
+    { '~', "`" }, { '!', "1" }, { '@', "2" }, { '#', "3" }, { '$', "4" },
+    { '%', "5" }, { '^', "6" }, { '&', "7" }, { '*', "8" }, { '(', "9" },
+    { ')', "0" }, { '_', "-" }, { '+', "=" }, { '|', "\\" }, { '{', "[" },
+    { '}', "]" }, { ':', ";" }, { '"', "'" }, { '<', "," }, { '>', "." },
+    { '?', "/" }
+};
+
+std::optional<TypedKey>
+typedKey(char c)
+{
+    if (c == '\n') return TypedKey { *keyCode("return"), false };
+    if (c == '\t') return TypedKey { *keyCode("tab"), false };
+    if (c == ' ') return TypedKey { *keyCode("space"), false };
+
+    if (c >= 'A' && c <= 'Z') {
+        return TypedKey { *keyCode(string(1, char(c - 'A' + 'a'))), true };
+    }
+    if (auto it = shifted.find(c); it != shifted.end()) {
+        return TypedKey { *keyCode(it->second), true };
+    }
+    if (auto code = keyCode(string(1, c))) {
+        return TypedKey { *code, false };
+    }
+    return std::nullopt;
+}
+
 }

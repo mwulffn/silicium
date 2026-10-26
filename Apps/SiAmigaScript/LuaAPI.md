@@ -59,6 +59,7 @@ as 0. What the chips hold in them is not memory and is not part of `mem`.
 | `keyboard.release(key)` | Lets a key go |
 | `keyboard.release_all()` | Lets all keys go |
 | `keyboard.pressed(key)` | Tells if a key is down |
+| `keyboard.type(text)` | Types the text on a US keyboard and returns the number of frames this takes |
 
 A key is given by its name or as a raw Amiga keycode (0 to 127). The names are:
 
@@ -75,6 +76,16 @@ The two keys which only international keyboards have are given by their keycodes
 
 Key events are queued, and reach the keyboard in order before the next frame is
 emulated. `keyboard.pressed()` waits until the keyboard has seen them.
+
+`keyboard.type()` types the printable ASCII characters, `"\n"` with Return and
+`"\t"` with Tab, using shift where a US keyboard needs it. It checks the whole
+text first, and raises an error without typing anything if a character cannot
+be typed. The keys are scheduled in emulated time (five frames per character)
+and pressed while the emulator runs, so the script lets the frames pass:
+
+```lua
+emu.wait_frames(keyboard.type("echo hello\n"))
+```
 
 ## video
 

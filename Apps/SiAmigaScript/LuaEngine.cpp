@@ -13,6 +13,7 @@
 #include "Internals.h"
 #include "Keys.h"
 #include "lua.hpp"
+#include "utl/abilities/Hashable.h"
 #include <cctype>
 #include <cstring>
 
@@ -450,9 +451,50 @@ video_screenshot(lua_State *L)
     return 0;
 }
 
+/* video.fingerprint([x1, x2, y1, y2]) returns a hash (32 bit FNV-1a) of the
+ * latest picture: of the entire texture, or of the cutout given in texels as
+ * for video.screenshot(). A script recognizes a picture by its fingerprint.
+ */
+static int
+video_fingerprint(lua_State *L)
+{
+    isize x1 = 0, x2 = Tex::width, y1 = 0, y2 = Tex::height;
+    if (!lua_isnone(L, 1)) {
+
+        x1 = isize(luaL_checkinteger(L, 1));
+        x2 = isize(luaL_checkinteger(L, 2));
+        y1 = isize(luaL_checkinteger(L, 3));
+        y2 = isize(luaL_checkinteger(L, 4));
+    }
+    if (x1 < 0 || x2 > Tex::width || x1 >= x2 || y1 < 0 || y2 > Tex::height || y1 >= y2) {
+        return luaL_error(L, "invalid texture cutout");
+    }
+
+    u32 hash = utl::Hashable::fnvInit32();
+    call(L, [&] {
+
+        auto &videoPort = host(L).getEmulator().videoPort;
+        videoPort.lockTexture();
+        try {
+
+            auto texels = videoPort.getTexture();
+            for (isize y = y1; y < y2; y++) {
+                for (isize x = x1; x < x2; x++) {
+                    hash = utl::Hashable::fnvIt32(hash, texels[y * Tex::width + x]);
+                }
+            }
+        } catch (...) { videoPort.unlockTexture(); throw; }
+        videoPort.unlockTexture();
+    });
+
+    lua_pushinteger(L, hash);
+    return 1;
+}
+
 static const luaL_Reg videoFunctions[] = {
 
     { "screenshot", video_screenshot },
+    { "fingerprint", video_fingerprint },
     { nullptr, nullptr }
 };
 

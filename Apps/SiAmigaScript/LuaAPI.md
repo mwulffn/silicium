@@ -116,6 +116,7 @@ until the joystick has seen them. With autofire configured, assigning `true` to
 | Function | Description |
 | --- | --- |
 | `video.screenshot(path [, x1, x2, y1, y2])` | Saves the latest picture as a PNG file: the entire texture, blanking areas included, or the cutout given in texels (x: super-hires pixels, y: lines; `x2` and `y2` are exclusive). |
+| `video.fingerprint([x1, x2, y1, y2])` | Returns a hash (32 bit FNV-1a) of the latest picture: of the entire texture, or of the cutout given as for `video.screenshot()` |
 
 The picture is the one of the frame before the current frame: the last frame
 is handed to the video port shortly after it has ended (see `MissingAPI.md`).
@@ -124,3 +125,20 @@ switched off with `-e "denise set FRAME_SKIPPING 0"`.
 
 RetroShell's `screenshot save` is meant for the regression tests: it writes
 raw pixel data and ends the emulator.
+
+A script recognizes a picture by its fingerprint, and waits for it frame by
+frame. As the emulator is deterministic, the fingerprint is the same in every
+run. A cutout leaves out what is not part of the test, such as a mouse pointer
+or a blinking cursor. The fingerprint is found by running the script once and
+checking the screenshot of the cutout:
+
+```lua
+local menu = { 590, 1300, 87, 218 }
+for frame = 1, 1000 do
+    emu.wait_frames(1)
+    if video.fingerprint(table.unpack(menu)) == 0x8f73b887 then break end
+end
+```
+
+A fingerprint changes with any change of the picture, also when the core draws
+it differently, so a test which fails should save a screenshot.

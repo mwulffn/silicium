@@ -9,6 +9,14 @@ Amiga. It gets the standard libraries of Lua 5.4 and the functions below. While
 the script runs, the emulator is paused; it only runs when the script asks for
 it. Where RetroShell has a name for something, the API uses the same name.
 
+As in the stand-alone Lua interpreter, `arg[0]` is the script as it was given
+on the command line, so a script finds the files next to it:
+
+```lua
+local dir = arg[0]:match("(.*[/\\])") or "./"
+emu.shell("df0 insert " .. dir .. "disk.adf")
+```
+
 An error in the script, or an error reported by the core, ends the app with
 exit code 1.
 

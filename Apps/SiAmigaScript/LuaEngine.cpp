@@ -554,6 +554,13 @@ LuaEngine::~LuaEngine()
 void
 LuaEngine::runFile(const fs::path &path)
 {
+    // As in the stand-alone interpreter, arg[0] is the script as it was given,
+    // so that the script finds the files next to it
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, path.string().c_str());
+    lua_rawseti(L, -2, 0);
+    lua_setglobal(L, "arg");
+
     // Compile and run the file. The error message names the file and the line.
     if (luaL_loadfile(L, path.string().c_str()) != LUA_OK || lua_pcall(L, 0, 0, 0) != LUA_OK) {
 

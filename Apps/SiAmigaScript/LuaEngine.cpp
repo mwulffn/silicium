@@ -351,7 +351,7 @@ joystick_index(lua_State *L)
     if (lua_type(L, 2) != LUA_TSTRING) return 0;
     auto key = lua_tostring(L, 2);
 
-    JoystickInfo info;
+    JoystickInfo info {};
     call(L, [&] {
 
         // Joystick events are queued; wait until the joystick has seen them

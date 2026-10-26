@@ -40,7 +40,7 @@ class ScriptHost : Wakeable {
     std::unique_ptr<VAmiga> emulator;
 
     // The interpreter which runs the script
-    LuaEngine lua;
+    LuaEngine lua = LuaEngine(*this);
 
     // Return code
     int returnCode = 0;

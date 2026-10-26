@@ -19,6 +19,8 @@ namespace vamiga {
 
 namespace fs = std::filesystem;
 
+class ScriptHost;
+
 struct ScriptError : public std::runtime_error {
     using runtime_error::runtime_error;
 };
@@ -30,7 +32,7 @@ class LuaEngine {
 
 public:
 
-    LuaEngine();
+    explicit LuaEngine(ScriptHost &host);
     ~LuaEngine();
 
     LuaEngine(const LuaEngine &) = delete;

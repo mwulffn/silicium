@@ -11,6 +11,7 @@
 #include "LuaEngine.h"
 #include "ScriptHost.h"
 #include "Internals.h"
+#include "Keys.h"
 #include "lua.hpp"
 #include <cstring>
 
@@ -201,6 +202,83 @@ static const luaL_Reg memFunctions[] = {
 
 
 //
+// The keyboard table
+//
+
+// Returns the keycode of a key given by its name or as a raw keycode
+static KeyCode
+checkKey(lua_State *L, int arg)
+{
+    if (lua_type(L, arg) == LUA_TNUMBER) {
+
+        auto code = luaL_checkinteger(L, arg);
+        luaL_argcheck(L, code >= 0 && code <= 0x7F, arg, "not a keycode");
+        return KeyCode(code);
+    }
+
+    if (lua_type(L, arg) != LUA_TSTRING) return KeyCode(luaL_typeerror(L, arg, "key name or keycode"));
+
+    auto name = lua_tostring(L, arg);
+    if (auto code = keyCode(name)) return *code;
+    return KeyCode(luaL_argerror(L, arg, lua_pushfstring(L, "unknown key '%s'", name)));
+}
+
+// keyboard.press(key) holds a key down
+static int
+keyboard_press(lua_State *L)
+{
+    auto key = checkKey(L, 1);
+    call(L, [&] { host(L).getEmulator().keyboard.press(key); });
+    return 0;
+}
+
+// keyboard.release(key) lets a key go
+static int
+keyboard_release(lua_State *L)
+{
+    auto key = checkKey(L, 1);
+    call(L, [&] { host(L).getEmulator().keyboard.release(key); });
+    return 0;
+}
+
+// keyboard.release_all() lets all keys go
+static int
+keyboard_release_all(lua_State *L)
+{
+    call(L, [&] { host(L).getEmulator().keyboard.releaseAll(); });
+    return 0;
+}
+
+// keyboard.pressed(key) tells if a key is down
+static int
+keyboard_pressed(lua_State *L)
+{
+    auto key = checkKey(L, 1);
+    bool pressed = false;
+
+    call(L, [&] {
+
+        // Key events are queued; wait until the keyboard has seen them
+        auto &vamiga = host(L).getEmulator();
+        vamiga.sync();
+        pressed = vamiga.keyboard.isPressed(key);
+    });
+
+    lua_pushboolean(L, pressed);
+    return 1;
+}
+
+static const luaL_Reg keyboardFunctions[] = {
+
+    { "press", keyboard_press },
+    { "release", keyboard_release },
+    { "release_all", keyboard_release_all },
+    { "pressed", keyboard_pressed },
+    { nullptr, nullptr }
+};
+
+
+//
 // The video table
 //
 
@@ -268,6 +346,9 @@ LuaEngine::LuaEngine(ScriptHost &host)
 
     luaL_newlib(L, memFunctions);
     lua_setglobal(L, "mem");
+
+    luaL_newlib(L, keyboardFunctions);
+    lua_setglobal(L, "keyboard");
 
     luaL_newlib(L, videoFunctions);
     lua_setglobal(L, "video");

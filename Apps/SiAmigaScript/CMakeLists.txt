@@ -8,6 +8,7 @@ add_executable(SiAmigaScript
 
   main.cpp
   Internals.cpp
+  Keys.cpp
   LuaEngine.cpp
   ScriptHost.cpp
 )

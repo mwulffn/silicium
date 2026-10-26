@@ -51,6 +51,31 @@ The core uses the lower 24 bits of an address.
 Custom chip registers which cannot be read on an Amiga, such as `BLTCON0`, read
 as 0. What the chips hold in them is not memory and is not part of `mem`.
 
+## keyboard
+
+| Function | Description |
+| --- | --- |
+| `keyboard.press(key)` | Holds a key down |
+| `keyboard.release(key)` | Lets a key go |
+| `keyboard.release_all()` | Lets all keys go |
+| `keyboard.pressed(key)` | Tells if a key is down |
+
+A key is given by its name or as a raw Amiga keycode (0 to 127). The names are:
+
+- the character on the key of a US keyboard: `"a"` to `"z"`, `"0"` to `"9"`,
+  `` "`" ``, `"-"`, `"="`, `"\\"`, `"["`, `"]"`, `";"`, `"'"`, `","`, `"."`, `"/"`
+- `"space"`, `"backspace"`, `"tab"`, `"return"`, `"esc"`, `"del"`, `"help"`
+- `"up"`, `"down"`, `"left"`, `"right"`, `"f1"` to `"f10"`
+- `"lshift"`, `"rshift"`, `"capslock"`, `"ctrl"`, `"lalt"`, `"ralt"`, `"lamiga"`, `"ramiga"`
+- the numeric keypad: `"kp0"` to `"kp9"`, `"kp."`, `"kp-"`, `"kp("`, `"kp)"`, `"kp/"`,
+  `"kp*"`, `"kp+"`, `"kpenter"`
+
+The two keys which only international keyboards have are given by their keycodes
+(`0x2B` and `0x30`).
+
+Key events are queued, and reach the keyboard in order before the next frame is
+emulated. `keyboard.pressed()` waits until the keyboard has seen them.
+
 ## video
 
 | Function | Description |

@@ -329,6 +329,93 @@ static const luaL_Reg keyboardFunctions[] = {
 
 
 //
+// The joystick table
+//
+
+// Returns the joystick of the control port the joystick[n] table belongs to.
+// The number of the port is an upvalue of the metamethods.
+static JoystickAPI &
+joystick(lua_State *L)
+{
+    auto &vamiga = host(L).getEmulator();
+    auto port = lua_tointeger(L, lua_upvalueindex(1));
+    return port == 1 ? vamiga.controlPort1.joystick : vamiga.controlPort2.joystick;
+}
+
+// The state of a joystick is given by the fields x, y (-1, 0, or 1) and fire
+// (a boolean). They are read from the core when they are accessed.
+static int
+joystick_index(lua_State *L)
+{
+    if (lua_type(L, 2) != LUA_TSTRING) return 0;
+    auto key = lua_tostring(L, 2);
+
+    JoystickInfo info;
+    call(L, [&] {
+
+        // Joystick events are queued; wait until the joystick has seen them
+        host(L).getEmulator().sync();
+        info = joystick(L).getInfo();
+    });
+
+    if (strcmp(key, "x") == 0)           { lua_pushinteger(L, info.axisX);
+    } else if (strcmp(key, "y") == 0)    { lua_pushinteger(L, info.axisY);
+    } else if (strcmp(key, "fire") == 0) { lua_pushboolean(L, info.button);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
+// Returns the value of an axis (-1, 0, or 1) which is assigned to a field
+static lua_Integer
+checkAxis(lua_State *L, const char *key)
+{
+    int valid;
+    auto value = lua_tointegerx(L, 3, &valid);
+    if (!valid || value < -1 || value > 1) luaL_error(L, "joystick.%s must be -1, 0, or 1", key);
+    return value;
+}
+
+// Assigning to x, y, or fire moves the joystick or presses the button
+static int
+joystick_newindex(lua_State *L)
+{
+    auto key = lua_type(L, 2) == LUA_TSTRING ? lua_tostring(L, 2) : "";
+    GamePadAction action;
+
+    if (strcmp(key, "x") == 0) {
+
+        auto x = checkAxis(L, key);
+        action = x < 0 ? GamePadAction::PULL_LEFT : x > 0 ? GamePadAction::PULL_RIGHT : GamePadAction::RELEASE_X;
+
+    } else if (strcmp(key, "y") == 0) {
+
+        auto y = checkAxis(L, key);
+        action = y < 0 ? GamePadAction::PULL_UP : y > 0 ? GamePadAction::PULL_DOWN : GamePadAction::RELEASE_Y;
+
+    } else if (strcmp(key, "fire") == 0) {
+
+        if (!lua_isboolean(L, 3)) luaL_error(L, "joystick.fire must be true or false");
+        action = lua_toboolean(L, 3) ? GamePadAction::PRESS_FIRE : GamePadAction::RELEASE_FIRE;
+
+    } else {
+        return luaL_error(L, "a joystick has no field %s", luaL_tolstring(L, 2, nullptr));
+    }
+
+    call(L, [&] { joystick(L).trigger(action); });
+    return 0;
+}
+
+static const luaL_Reg joystickMetamethods[] = {
+
+    { "__index", joystick_index },
+    { "__newindex", joystick_newindex },
+    { nullptr, nullptr }
+};
+
+
+//
 // The video table
 //
 
@@ -399,6 +486,19 @@ LuaEngine::LuaEngine(ScriptHost &host)
 
     luaL_newlib(L, keyboardFunctions);
     lua_setglobal(L, "keyboard");
+
+    // joystick[1] and joystick[2] are the joysticks in the two control ports
+    lua_createtable(L, 2, 0);
+    for (lua_Integer port = 1; port <= 2; port++) {
+
+        lua_newtable(L);
+        lua_createtable(L, 0, 2);
+        lua_pushinteger(L, port);
+        luaL_setfuncs(L, joystickMetamethods, 1);
+        lua_setmetatable(L, -2);
+        lua_rawseti(L, -2, port);
+    }
+    lua_setglobal(L, "joystick");
 
     luaL_newlib(L, videoFunctions);
     lua_setglobal(L, "video");

@@ -87,6 +87,30 @@ and pressed while the emulator runs, so the script lets the frames pass:
 emu.wait_frames(keyboard.type("echo hello\n"))
 ```
 
+## joystick
+
+`joystick[1]` and `joystick[2]` are the joysticks in the two control ports. Their
+state is given by fields, which can be read and written:
+
+| Field | Description |
+| --- | --- |
+| `x` | The horizontal axis: -1 (left), 0, or 1 (right) |
+| `y` | The vertical axis: -1 (up), 0, or 1 (down) |
+| `fire` | The fire button: `true` or `false` |
+
+```lua
+local joy = joystick[2]
+joy.x = -1          -- pull left
+joy.fire = true
+emu.wait_frames(10)
+joy.x, joy.fire = 0, false
+```
+
+Writing a field plugs a joystick into the port, which in port 1 replaces the
+mouse. Like key events, joystick events are queued, and reading a field waits
+until the joystick has seen them. With autofire configured, assigning `true` to
+`fire` starts or stops firing, as the fire button of a joystick does then.
+
 ## video
 
 | Function | Description |

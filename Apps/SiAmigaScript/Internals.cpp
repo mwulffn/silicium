@@ -37,10 +37,16 @@ execShellCommand(VAmiga &vamiga, const string &command)
     };
 
     // asyncExec() does not lock the shell, so the emulator thread is kept out
-    // of the way while the command is queued
-    vamiga.suspend();
-    vamiga.amiga.amiga->retroShell.asyncExec(line);
-    vamiga.resume();
+    // of the way while the command is queued (and resumes if this throws)
+    {
+        struct Suspended {
+            VAmiga &vamiga;
+            Suspended(VAmiga &vamiga) : vamiga(vamiga) { vamiga.suspend(); }
+            ~Suspended() { vamiga.resume(); }
+        } suspended(vamiga);
+
+        vamiga.amiga.amiga->retroShell.asyncExec(line);
+    }
 
     if (future.wait_for(timeout) != std::future_status::ready) {
         throw std::runtime_error("The RetroShell command did not finish");

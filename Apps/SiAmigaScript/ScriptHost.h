@@ -36,10 +36,6 @@ class ScriptHost : Wakeable {
     // RetroShell commands to execute at startup (option -e)
     std::vector<string> commands;
 
-    // The emulator (created when the command line has been checked, as it
-    // cannot be destroyed without having been launched, see MissingAPI.md)
-    std::unique_ptr<VAmiga> emulator;
-
     // The interpreter which runs the script
     LuaEngine lua = LuaEngine(*this);
 
@@ -49,6 +45,13 @@ class ScriptHost : Wakeable {
     // What the host is waiting for (see process())
     enum class Waiting { Nothing, Commands, Frame };
     std::atomic<Waiting> waiting = Waiting::Nothing;
+
+    // The emulator (created when the command line has been checked, as it
+    // cannot be destroyed without having been launched, see MissingAPI.md).
+    // It is declared last, so it is destroyed first: if the script fails, the
+    // emulator shuts down in its destructor, and process() still gets the
+    // messages it sends meanwhile.
+    std::unique_ptr<VAmiga> emulator;
 
 
     //

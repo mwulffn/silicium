@@ -201,6 +201,48 @@ static const luaL_Reg memFunctions[] = {
 
 
 //
+// The video table
+//
+
+/* video.screenshot(path [, x1, x2, y1, y2]) saves the latest picture as a PNG
+ * file: the entire texture, or the cutout given in texels. The picture is the
+ * one of the frame before the current frame (see MissingAPI.md).
+ */
+static int
+video_screenshot(lua_State *L)
+{
+    auto path = luaL_checkstring(L, 1);
+    auto cutout = !lua_isnone(L, 2);
+
+    isize x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    if (cutout) {
+
+        x1 = isize(luaL_checkinteger(L, 2));
+        x2 = isize(luaL_checkinteger(L, 3));
+        y1 = isize(luaL_checkinteger(L, 4));
+        y2 = isize(luaL_checkinteger(L, 5));
+    }
+
+    call(L, [&] {
+
+        auto &videoPort = host(L).getEmulator().videoPort;
+        if (cutout) {
+            videoPort.saveTexture(path, x1, x2, y1, y2);
+        } else {
+            videoPort.saveTexture(path);
+        }
+    });
+    return 0;
+}
+
+static const luaL_Reg videoFunctions[] = {
+
+    { "screenshot", video_screenshot },
+    { nullptr, nullptr }
+};
+
+
+//
 // The engine
 //
 
@@ -226,6 +268,9 @@ LuaEngine::LuaEngine(ScriptHost &host)
 
     luaL_newlib(L, memFunctions);
     lua_setglobal(L, "mem");
+
+    luaL_newlib(L, videoFunctions);
+    lua_setglobal(L, "video");
 }
 
 LuaEngine::~LuaEngine()

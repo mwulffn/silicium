@@ -50,3 +50,17 @@ The core uses the lower 24 bits of an address.
 
 Custom chip registers which cannot be read on an Amiga, such as `BLTCON0`, read
 as 0. What the chips hold in them is not memory and is not part of `mem`.
+
+## video
+
+| Function | Description |
+| --- | --- |
+| `video.screenshot(path [, x1, x2, y1, y2])` | Saves the latest picture as a PNG file: the entire texture, blanking areas included, or the cutout given in texels (x: super-hires pixels, y: lines; `x2` and `y2` are exclusive). |
+
+The picture is the one of the frame before the current frame: the last frame
+is handed to the video port shortly after it has ended (see `MissingAPI.md`).
+In warp mode, the core draws only some of the frames unless frame skipping is
+switched off with `-e "denise set FRAME_SKIPPING 0"`.
+
+RetroShell's `screenshot save` is meant for the regression tests: it writes
+raw pixel data and ends the emulator.

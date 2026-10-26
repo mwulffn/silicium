@@ -13,6 +13,7 @@
 #include "VAmiga.h"
 #include "LuaEngine.h"
 #include "utl/concurrency.h"
+#include <atomic>
 #include <map>
 #include <memory>
 #include <vector>
@@ -44,6 +45,10 @@ class ScriptHost : Wakeable {
 
     // Return code
     int returnCode = 0;
+
+    // What the host is waiting for (see process())
+    enum class Waiting { Nothing, Commands, Frame };
+    std::atomic<Waiting> waiting = Waiting::Nothing;
 
 
     //

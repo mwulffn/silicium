@@ -1,10 +1,11 @@
 # What SiAmigaScript is missing in the core
 
-SiAmigaScript uses the public API of the vAmiga core (`VAmiga.h`) only. Where
-that API does not offer what the app needs, the app lives with a limitation or
-works around it. This file lists each such place: what is missing, why the app
-wants it, and what it does in the meantime. The code refers to this file at
-every place concerned.
+SiAmigaScript uses the public API of the vAmiga core (`VAmiga.h`). Where that
+API does not offer what the app needs, the app lives with a limitation or works
+around it. This file lists each such place: what is missing, why the app wants
+it, and what it does in the meantime. The code refers to this file at every
+place concerned, and every use of the internals of the core is in
+`Internals.cpp`.
 
 ## Missing API
 
@@ -56,7 +57,43 @@ register, cannot do that.
 **In the meantime:** the `mem` functions read without side effects. Nothing
 needs reads with side effects yet.
 
+### Executing a RetroShell command and getting its output
+
+**Used in:** `internals::execShellCommand()` (for `emu.shell()`)
+
+`RetroShellAPI` can execute commands (`execScriptAsync()`), and reports with a
+message when they have been executed or one of them has failed. It does not
+give the output of a command, and not the error of a failed one. All output
+goes to the console (`text()`, `setStream()`), mixed with the echoed command,
+the prompt and line numbers.
+
+Internally, `RetroShell::asyncExec()` takes an `InputLine` with a completion
+handler, which receives exactly the output of the command, or its exception.
+The JSON RPC server is built on it.
+
+**Why the app wants it:** `emu.shell()` gives scripts everything RetroShell
+can do, in particular its inspectors (`r cpu`, `? copper list`, `os tasks`,
+...), without the app having to offer each of them again. A script needs the
+output of the command, and must learn when it fails.
+
+**In the meantime:** `execShellCommand()` calls `RetroShell::asyncExec()`
+directly, with a completion handler, as the RPC server does. As `asyncExec()`
+does not lock the shell (see below), the emulator thread is suspended with the
+public `suspend()` while the command is queued.
+
+**What would solve it:** a public function which executes a command and
+returns its output or throws its error, such as `string RetroShellAPI::exec(const
+string &command)`, or an `execAsync()` with a completion handler.
+
 ## Other findings
+
+### `RetroShell::asyncExec()` does not lock the command queue
+
+`asyncExec()` adds the command to `commands` without taking the shell's lock,
+while `exec()` processes the same vector on the emulator thread under the lock.
+`asyncExecScript()` does take the lock. The RPC and RSH servers call
+`asyncExec()` when a request arrives, which looks like it may happen while the
+emulator thread processes the queue. Not verified; worth a look.
 
 ### `~VAmiga()` throws if the emulator thread has never been launched
 

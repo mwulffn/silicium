@@ -17,6 +17,7 @@ exit code 1.
 | Function | Description |
 | --- | --- |
 | `emu.wait_frames([n])` | Lets the emulator run `n` frames (default 1), and returns when they have been emulated. An Amiga which is switched off is switched on first. |
+| `emu.shell(command)` | Executes a RetroShell command and returns its output as a string. A command which fails raises an error with the message of RetroShell. The shell keeps its state between calls: `emu.shell("debugger")` switches to the debugger commands, `emu.shell("commander")` back. |
 
 ## cpu
 

@@ -75,8 +75,10 @@ ScriptHost::execCommands()
 
     // Wait until the shell reports that it has finished or failed
     const auto timeout = utl::Time::seconds(500.0);
+    waiting = Waiting::Commands;
     emulator->retroShell.execScriptAsync(script);
     waitForWakeUp(timeout);
+    waiting = Waiting::Nothing;
 
     if (returnCode != 0 && keys.find("verbose") == keys.end()) {
         std::cerr << "A RetroShell command failed (use -v to see the output)" << std::endl;
@@ -101,29 +103,32 @@ ScriptHost::process(Message msg)
         std::cout << std::endl;
     }
 
+    /* The shell and the emulator send these messages for other reasons, too
+     * (e.g., for a command a script executes with emu.shell()), so they only
+     * count while the host is waiting for them.
+     */
     switch (msg.type) {
 
         case Msg::RSH_ERROR:
 
-            returnCode = 1;
-            wakeUp();
+            if (waiting == Waiting::Commands) { returnCode = 1; wakeUp(); }
             break;
 
         case Msg::RSH_DONE:
 
             // The commands run in the main shell (id 0)
-            if (msg.value == 0) wakeUp();
+            if (waiting == Waiting::Commands && msg.value == 0) wakeUp();
             break;
 
         case Msg::PAUSE:
 
             // The emulator has finished a frame (see runFrame)
-            wakeUp();
+            if (waiting == Waiting::Frame) wakeUp();
             break;
 
         case Msg::ABORT:
 
-            wakeUp();
+            if (waiting != Waiting::Nothing) wakeUp();
             break;
 
         default:
@@ -141,8 +146,10 @@ ScriptHost::runFrame()
      * picture has been handed to the video port. Until then, the texture shows
      * the previous frame (see MissingAPI.md).
      */
+    waiting = Waiting::Frame;
     emulator->finishFrame();
     waitForWakeUp(timeout);
+    waiting = Waiting::Nothing;
 
     if (emulator->isRunning()) throw std::runtime_error("The frame did not finish");
 }

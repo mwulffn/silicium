@@ -10,6 +10,7 @@
 
 #include "LuaEngine.h"
 #include "ScriptHost.h"
+#include "Internals.h"
 #include "lua.hpp"
 #include <cstring>
 
@@ -59,9 +60,24 @@ emu_wait_frames(lua_State *L)
     return 0;
 }
 
+// emu.shell(command) executes a RetroShell command and returns its output
+static int
+emu_shell(lua_State *L)
+{
+    auto command = luaL_checkstring(L, 1);
+
+    call(L, [&] {
+
+        auto output = internals::execShellCommand(host(L).getEmulator(), command);
+        lua_pushlstring(L, output.data(), output.size());
+    });
+    return 1;
+}
+
 static const luaL_Reg emuFunctions[] = {
 
     { "wait_frames", emu_wait_frames },
+    { "shell", emu_shell },
     { nullptr, nullptr }
 };
 

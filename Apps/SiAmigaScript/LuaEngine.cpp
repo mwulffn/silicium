@@ -12,7 +12,9 @@
 #include "ScriptHost.h"
 #include "Internals.h"
 #include "Keys.h"
-#include "lua.hpp"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 #include "utl/abilities/Hashable.h"
 #include <cctype>
 #include <cstring>
@@ -26,24 +28,24 @@ host(lua_State *L)
     return **(ScriptHost **)lua_getextraspace(L);
 }
 
-/* Calls into the host. A C++ exception must not pass through the Lua
- * interpreter, which is written in C, so it is turned into a Lua error which
- * names the line of the script.
+/* Calls into the host. A C++ exception is turned into a Lua error which names
+ * the line of the script. Lua is compiled as C++, so the Lua error is a C++
+ * exception, too, and unwinds the functions of the API properly.
  */
 template <class F> static void
 call(lua_State *L, F &&f)
 {
-    bool failed = false;
+    string message;
 
     try {
         f();
+        return;
     } catch (std::exception &e) {
-        luaL_where(L, 1);
-        lua_pushstring(L, e.what());
-        lua_concat(L, 2);
-        failed = true;
+        message = e.what();
+    } catch (...) {
+        message = "unknown error";
     }
-    if (failed) lua_error(L);
+    luaL_error(L, "%s", message.c_str());
 }
 
 
@@ -69,11 +71,10 @@ emu_shell(lua_State *L)
 {
     auto command = luaL_checkstring(L, 1);
 
-    call(L, [&] {
+    string output;
+    call(L, [&] { output = internals::execShellCommand(host(L).getEmulator(), command); });
 
-        auto output = internals::execShellCommand(host(L).getEmulator(), command);
-        lua_pushlstring(L, output.data(), output.size());
-    });
+    lua_pushlstring(L, output.data(), output.size());
     return 1;
 }
 

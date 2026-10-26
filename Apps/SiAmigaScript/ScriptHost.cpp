@@ -10,8 +10,8 @@
 
 #include "ScriptHost.h"
 #include "utl/support.h"
-#include <cstdio>
 #include <iostream>
+#include <sstream>
 
 namespace vamiga {
 
@@ -23,88 +23,56 @@ ScriptHost::main(int argc, char *argv[])
 
     // Create the emulator and launch the emulator thread
     emulator = std::make_unique<VAmiga>();
-    auto &vamiga = *emulator;
-    vamiga.launch(this, vamiga::process);
+    emulator->launch(this, vamiga::process);
 
-    // Set up the Amiga and switch it on
-    configure();
-    vamiga.powerOn();
+    // Redirect shell output to the console in verbose mode
+    if (keys.find("verbose") != keys.end()) emulator->retroShell.setStream(std::cout);
 
-    // Run the requested number of frames
-    auto frames = std::stol(keys["frames"]);
-    for (long i = 0; i < frames; i++) runFrame();
+    // Set up the Amiga
+    execCommands();
 
-    auto &cpu = vamiga.cpu.getInfo();
-    auto &agnus = vamiga.agnus.getInfo();
-    printf("frame %lld  pc $%06x\n", (long long)agnus.frame, cpu.pc0);
-
-    vamiga.removeListener();
-    vamiga.halt();
-    return 0;
+    emulator->removeListener();
+    emulator->halt();
+    return returnCode;
 }
 
 void
 ScriptHost::parseArguments(int argc, char *argv[])
 {
-    // Defaults
-    keys["model"] = "A500_OCS_1MB";
-    keys["frames"] = "0";
-
     for (isize i = 1; i < argc; i++) {
 
         auto arg = string(argv[i]);
 
-        // All options take a value
-        auto value = [&]() {
+        if (arg == "-v" || arg == "--verbose")   { keys["verbose"] = "1"; continue; }
+        if (arg == "-m" || arg == "--messages")  { keys["messages"] = "1"; continue; }
 
-            if (i + 1 >= argc) throw UsageError("Option '" + arg + "' needs a value");
-            return string(argv[++i]);
-        };
+        if (arg == "-e" || arg == "--exec") {
 
-        if (arg == "--model")   { keys["model"] = value(); continue; }
-        if (arg == "--rom")     { keys["rom"] = value(); continue; }
-        if (arg == "--ext")     { keys["ext"] = value(); continue; }
-        if (arg == "--frames")  { keys["frames"] = value(); continue; }
+            if (i + 1 >= argc) throw UsageError("Option '" + arg + "' needs a command");
+            commands.push_back(argv[++i]);
+            continue;
+        }
 
         throw UsageError("Invalid option '" + arg + "'");
     }
-
-    if (!ConfigSchemeEnum::parseEnum(keys["model"])) {
-        throw UsageError("Unknown model '" + keys["model"] + "'");
-    }
-    if (keys.find("rom") == keys.end()) {
-        throw UsageError("No Kickstart Rom given");
-    }
-    if (keys["frames"].find_first_not_of("0123456789") != string::npos) {
-        throw UsageError("Invalid number of frames '" + keys["frames"] + "'");
-    }
 }
 
 void
-ScriptHost::configure()
+ScriptHost::execCommands()
 {
-    auto &vamiga = *emulator;
+    if (commands.empty()) return;
 
-    vamiga.set(*ConfigSchemeEnum::parseEnum(keys["model"]));
+    std::stringstream script;
+    for (auto &command : commands) script << command << std::endl;
 
-    // The host decides when the emulator runs, so the core never waits
-    vamiga.set(Opt::AMIGA_WARP_MODE, (i64)Warp::ALWAYS);
-
-    // Every frame is drawn, so that every frame can be inspected
-    vamiga.set(Opt::DENISE_FRAME_SKIPPING, 0);
-
-    vamiga.mem.loadRom(keys["rom"]);
-    if (keys.find("ext") != keys.end()) vamiga.mem.loadExt(keys["ext"]);
-}
-
-void
-ScriptHost::runFrame()
-{
-    const auto timeout = utl::Time::seconds(10.0);
-
-    // The emulator pauses at the end of the frame
-    emulator->finishFrame();
+    // Wait until the shell reports that it has finished or failed
+    const auto timeout = utl::Time::seconds(500.0);
+    emulator->retroShell.execScriptAsync(script);
     waitForWakeUp(timeout);
+
+    if (returnCode != 0 && keys.find("verbose") == keys.end()) {
+        std::cerr << "A RetroShell command failed (use -v to see the output)" << std::endl;
+    }
 }
 
 void
@@ -116,9 +84,30 @@ process(const void *listener, Message msg, std::exception_ptr)
 void
 ScriptHost::process(Message msg)
 {
+    static bool messages = keys.find("messages") != keys.end();
+
+    if (messages) {
+
+        std::cout << MsgEnum::key(msg.type);
+        std::cout << "(" << msg.value << ")";
+        std::cout << std::endl;
+    }
+
     switch (msg.type) {
 
-        case Msg::PAUSE:
+        case Msg::RSH_ERROR:
+
+            returnCode = 1;
+            wakeUp();
+            break;
+
+        case Msg::RSH_DONE:
+
+            // The commands run in the main shell (id 0)
+            if (msg.value == 0) wakeUp();
+            break;
+
+        case Msg::ABORT:
 
             wakeUp();
             break;

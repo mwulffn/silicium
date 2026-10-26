@@ -14,6 +14,7 @@
 #include "utl/concurrency.h"
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace vamiga {
 
@@ -24,17 +25,21 @@ struct UsageError : public std::runtime_error {
 // The message listener
 void process(const void *listener, Message msg, std::exception_ptr exception);
 
-/* The host runs the emulator on behalf of the scripts. It keeps the emulator
- * paused, and lets it run one frame at a time.
- */
+// The host runs the emulator on behalf of the scripts
 class ScriptHost : Wakeable {
 
     // Parsed command line arguments
     std::map<string,string> keys;
 
+    // RetroShell commands to execute at startup (option -e)
+    std::vector<string> commands;
+
     // The emulator (created when the command line has been checked, as it
     // cannot be destroyed without having been launched)
     std::unique_ptr<VAmiga> emulator;
+
+    // Return code
+    int returnCode = 0;
 
 
     //
@@ -51,8 +56,8 @@ private:
     // Parses the command line arguments (may throw)
     void parseArguments(int argc, char *argv[]);
 
-    // Configures the Amiga as specified on the command line (may throw)
-    void configure();
+    // Executes the RetroShell commands given on the command line
+    void execCommands();
 
 
     //
@@ -63,11 +68,6 @@ public:
 
     // Processes an incoming message
     void process(Message msg);
-
-private:
-
-    // Lets the emulator run until the end of the current frame
-    void runFrame();
 };
 
 }

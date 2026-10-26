@@ -19,13 +19,13 @@ int main(int argc, char *argv[])
 
     } catch (vamiga::UsageError &e) {
 
-        std::cout << "Usage: SiAmigaScript --rom <file> [options]" << std::endl;
+        std::cout << "Usage: SiAmigaScript [-vm] [-e <command>]..." << std::endl;
         std::cout << std::endl;
-        std::cout << "       --model <scheme>    A1000_OCS_1MB, A500_OCS_1MB (default), A500_ECS_1MB," << std::endl;
-        std::cout << "                           A500_PLUS_1MB or A1200_2MB" << std::endl;
-        std::cout << "       --rom <file>        Kickstart Rom" << std::endl;
-        std::cout << "       --ext <file>        Extension Rom (needed by the AROS Rom)" << std::endl;
-        std::cout << "       --frames <n>        Number of frames to run" << std::endl;
+        std::cout << "       -e or --exec <command>  Execute a RetroShell command at startup" << std::endl;
+        std::cout << "       -v or --verbose         Print the RetroShell output" << std::endl;
+        std::cout << "       -m or --messages        Observe the message queue" << std::endl;
+        std::cout << std::endl;
+        std::cout << "       Example: SiAmigaScript -e \"amiga init A500_OCS_1MB\" -e \"mem load rom kick.rom\"" << std::endl;
         std::cout << std::endl;
         std::cout << e.what() << std::endl;
 

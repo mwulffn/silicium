@@ -39,6 +39,23 @@ frame behind. Nothing reads the picture yet.
 been swapped in `vsyncHandler()` instead of in `eolHandler()`, or a second kind
 of frame step which ends there.
 
+### Reading memory with the side effects of a CPU access
+
+**Used in:** `mem.peek_u8()`, `mem.peek_u16()`, `mem.peek_u32()`, `mem.read_range()`
+
+`MemoryDebuggerAPI` reads memory without side effects (`spypeek8()`,
+`spypeek16()`). There is no public function which reads memory the way the CPU
+does, with the effects of the access: reading a CIA's interrupt control
+register clears it, for example.
+
+**Why the app might want it:** reading without side effects is the right thing
+for inspecting the machine, and it is all the app offers. A script which wants
+to act like the program, such as acknowledging an interrupt by reading the
+register, cannot do that.
+
+**In the meantime:** the `mem` functions read without side effects. Nothing
+needs reads with side effects yet.
+
 ## Other findings
 
 ### `~VAmiga()` throws if the emulator thread has never been launched

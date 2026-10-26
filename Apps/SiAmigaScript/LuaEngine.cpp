@@ -113,6 +113,78 @@ static const luaL_Reg cpuMetamethods[] = {
 
 
 //
+// The mem table
+//
+
+// The largest block mem.read_range() returns
+static constexpr lua_Integer maxRange = 16 * 1024 * 1024;
+
+static u32
+checkAddress(lua_State *L, int arg)
+{
+    auto addr = luaL_checkinteger(L, arg);
+    luaL_argcheck(L, addr >= 0 && addr <= 0xFFFFFFFF, arg, "not an address");
+    return u32(addr);
+}
+
+/* Reads a value of the given size in bytes the way the CPU sees memory, but
+ * without side effects (spypeek). Values are composed of single bytes, big
+ * endian, so that any address can be read.
+ */
+static lua_Integer
+peek(lua_State *L, u32 addr, isize size)
+{
+    lua_Integer value = 0;
+
+    call(L, [&] {
+
+        auto &debugger = host(L).getEmulator().mem.debugger;
+        for (isize i = 0; i < size; i++) {
+            value = value << 8 | debugger.spypeek8(Accessor::CPU, u32(addr + i));
+        }
+    });
+    return value;
+}
+
+// mem.peek_u8(addr), mem.peek_u16(addr), mem.peek_u32(addr)
+static int mem_peek_u8(lua_State *L)  { lua_pushinteger(L, peek(L, checkAddress(L, 1), 1)); return 1; }
+static int mem_peek_u16(lua_State *L) { lua_pushinteger(L, peek(L, checkAddress(L, 1), 2)); return 1; }
+static int mem_peek_u32(lua_State *L) { lua_pushinteger(L, peek(L, checkAddress(L, 1), 4)); return 1; }
+
+// mem.read_range(addr, len) returns len bytes as a string
+static int
+mem_read_range(lua_State *L)
+{
+    auto addr = checkAddress(L, 1);
+    auto len = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, len >= 0 && len <= maxRange, 2, "invalid length");
+
+    luaL_Buffer buffer;
+    auto data = luaL_buffinitsize(L, &buffer, size_t(len));
+
+    call(L, [&] {
+
+        auto &debugger = host(L).getEmulator().mem.debugger;
+        for (lua_Integer i = 0; i < len; i++) {
+            data[i] = char(debugger.spypeek8(Accessor::CPU, u32(addr + i)));
+        }
+    });
+
+    luaL_pushresultsize(&buffer, size_t(len));
+    return 1;
+}
+
+static const luaL_Reg memFunctions[] = {
+
+    { "peek_u8", mem_peek_u8 },
+    { "peek_u16", mem_peek_u16 },
+    { "peek_u32", mem_peek_u32 },
+    { "read_range", mem_read_range },
+    { nullptr, nullptr }
+};
+
+
+//
 // The engine
 //
 
@@ -135,6 +207,9 @@ LuaEngine::LuaEngine(ScriptHost &host)
     luaL_newlib(L, cpuMetamethods);
     lua_setmetatable(L, -2);
     lua_setglobal(L, "cpu");
+
+    luaL_newlib(L, memFunctions);
+    lua_setglobal(L, "mem");
 }
 
 LuaEngine::~LuaEngine()

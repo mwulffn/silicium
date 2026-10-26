@@ -34,3 +34,18 @@ core when they are accessed, and cannot be written yet.
 
 On a CPU which does not have a register, such as the master stack pointer or the
 vector base register of a 68000, the field is 0.
+
+## mem
+
+The functions read memory the way the CPU sees it, but without side effects:
+reading a register of a chip does not change it, as it would if the CPU read it.
+Values are big endian and can be read at any address, odd addresses included.
+The core uses the lower 24 bits of an address.
+
+| Function | Description |
+| --- | --- |
+| `mem.peek_u8(addr)`, `mem.peek_u16(addr)`, `mem.peek_u32(addr)` | The byte, word or long word at `addr` |
+| `mem.read_range(addr, len)` | `len` bytes from `addr` on, as a string (at most 16 MB) |
+
+Custom chip registers which cannot be read on an Amiga, such as `BLTCON0`, read
+as 0. What the chips hold in them is not memory and is not part of `mem`.

@@ -67,7 +67,7 @@ jobs:
                 ${{ runner.os != 'Windows' && '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache' || '' }}
 
       - name: Build
-        run: cmake --build build --target VAHeadless VC64Headless
+        run: cmake --build build --target VAHeadless VC64Headless SiAmigaScript
 
       # The headless runners return a non-zero code if a script line fails
       - name: Smoke test (vAmiga)

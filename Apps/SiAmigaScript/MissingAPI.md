@@ -34,7 +34,8 @@ A script which compares the screen with an expected picture, or which waits
 until something appears on the screen, would otherwise act one frame late.
 
 **In the meantime:** frames are run with `finishFrame()`, and the picture is one
-frame behind. Nothing reads the picture yet.
+frame behind. `video.screenshot()` and `video.fingerprint()` read the picture
+of the previous frame, which LuaAPI.md tells.
 
 **What would solve it:** for example, checking `eofTrap` after the buffers have
 been swapped in `vsyncHandler()` instead of in `eolHandler()`, or a second kind

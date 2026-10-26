@@ -24,8 +24,8 @@ exit code 1.
 
 | Function | Description |
 | --- | --- |
-| `emu.wait_frames([n])` | Lets the emulator run `n` frames (default 1), and returns when they have been emulated. An Amiga which is switched off is switched on first. |
-| `emu.shell(command)` | Executes a RetroShell command and returns its output as a string. A command which fails raises an error with the message of RetroShell. The shell keeps its state between calls: `emu.shell("debugger")` switches to the debugger commands, `emu.shell("commander")` back. |
+| `emu.wait_frames([n])` | Lets the emulator run `n` frames (default 1), and returns when they have been emulated. An Amiga which is switched off is switched on first. If the emulator stops earlier, at a breakpoint set with `emu.shell()`, the frames count as emulated (breakpoints are not supported yet). |
+| `emu.shell(command)` | Executes a RetroShell command and returns its output as a string. A command which fails raises an error with the message of RetroShell. The shell keeps its state between calls: `emu.shell("debugger")` switches to the debugger commands, `emu.shell("commander")` back. RetroShell's commands for its own scripts do not work here: `wait` raises an error with the message `std::exception`, and `try` does not catch the error of a command. A script uses `emu.wait_frames()` and `pcall()` instead. |
 
 ## cpu
 
@@ -136,7 +136,8 @@ raw pixel data and ends the emulator.
 
 A script recognizes a picture by its fingerprint, and waits for it frame by
 frame. As the emulator is deterministic, the fingerprint is the same in every
-run. A cutout leaves out what is not part of the test, such as a mouse pointer
+run with the same configuration (the texture format `HOST.TEX_FORMAT` and the
+color palette `MON.PALETTE` change the texels). A cutout leaves out what is not part of the test, such as a mouse pointer
 or a blinking cursor. The fingerprint is found by running the script once and
 checking the screenshot of the cutout:
 

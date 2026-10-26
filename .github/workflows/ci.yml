@@ -78,6 +78,11 @@ jobs:
         shell: bash
         run: build/Cores/VCCore/VC64Headless${EXE} --smoke
 
+      # The Lua scripts return a non-zero code if a check fails
+      - name: Lua test (SiAmigaScript)
+        shell: bash
+        run: build/Apps/SiAmigaScript/SiAmigaScript${EXE} Apps/SiAmigaScript/Tests/testkit.lua
+
   #
   # The Qt apps (Hub, SiC64, SiAmiga). macOS is the reference platform; it
   # runs on macOS 26, whose Xcode can compile the Icon Composer app icons. Linux

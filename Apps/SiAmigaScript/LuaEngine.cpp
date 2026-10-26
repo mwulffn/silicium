@@ -11,6 +11,7 @@
 #include "LuaEngine.h"
 #include "ScriptHost.h"
 #include "lua.hpp"
+#include <cstring>
 
 namespace vamiga {
 
@@ -66,6 +67,52 @@ static const luaL_Reg emuFunctions[] = {
 
 
 //
+// The cpu table
+//
+
+// The registers of the CPU are fields of the cpu table (cpu.d0, cpu.pc, ...).
+// They are read from the core when they are accessed.
+static int
+cpu_index(lua_State *L)
+{
+    if (lua_type(L, 2) != LUA_TSTRING) return 0;
+    auto key = lua_tostring(L, 2);
+
+    const CPUInfo *info = nullptr;
+    call(L, [&] { info = &host(L).getEmulator().cpu.getInfo(); });
+
+    if ((key[0] == 'd' || key[0] == 'a') && key[1] >= '0' && key[1] <= '7' && key[2] == 0) {
+
+        auto nr = key[1] - '0';
+        lua_pushinteger(L, key[0] == 'd' ? info->d[nr] : info->a[nr]);
+
+    } else if (strcmp(key, "pc") == 0)  { lua_pushinteger(L, info->pc0);
+    } else if (strcmp(key, "sr") == 0)  { lua_pushinteger(L, info->sr);
+    } else if (strcmp(key, "usp") == 0) { lua_pushinteger(L, info->usp);
+    } else if (strcmp(key, "isp") == 0) { lua_pushinteger(L, info->isp);
+    } else if (strcmp(key, "msp") == 0) { lua_pushinteger(L, info->msp);
+    } else if (strcmp(key, "vbr") == 0) { lua_pushinteger(L, info->vbr);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
+static int
+cpu_newindex(lua_State *L)
+{
+    return luaL_error(L, "cpu.%s cannot be written", luaL_tolstring(L, 2, nullptr));
+}
+
+static const luaL_Reg cpuMetamethods[] = {
+
+    { "__index", cpu_index },
+    { "__newindex", cpu_newindex },
+    { nullptr, nullptr }
+};
+
+
+//
 // The engine
 //
 
@@ -83,6 +130,11 @@ LuaEngine::LuaEngine(ScriptHost &host)
     // And the functions for the Amiga
     luaL_newlib(L, emuFunctions);
     lua_setglobal(L, "emu");
+
+    lua_newtable(L);
+    luaL_newlib(L, cpuMetamethods);
+    lua_setmetatable(L, -2);
+    lua_setglobal(L, "cpu");
 }
 
 LuaEngine::~LuaEngine()

@@ -17,3 +17,20 @@ exit code 1.
 | Function | Description |
 | --- | --- |
 | `emu.wait_frames([n])` | Lets the emulator run `n` frames (default 1), and returns when they have been emulated. An Amiga which is switched off is switched on first. |
+
+## cpu
+
+The registers of the CPU are fields of the `cpu` table. They are read from the
+core when they are accessed, and cannot be written yet.
+
+| Field | Register |
+| --- | --- |
+| `cpu.d0` ... `cpu.d7` | Data registers |
+| `cpu.a0` ... `cpu.a7` | Address registers (`a7` is the active stack pointer) |
+| `cpu.pc` | Program counter: the address of the next instruction |
+| `cpu.sr` | Status register |
+| `cpu.usp`, `cpu.isp`, `cpu.msp` | User, interrupt and master stack pointer |
+| `cpu.vbr` | Vector base register |
+
+On a CPU which does not have a register, such as the master stack pointer or the
+vector base register of a 68000, the field is 0.

@@ -75,6 +75,9 @@ public:
 
     // Lets the paused emulator run until the end of the current frame
     void runFrame();
+
+    // Returns the emulator (for the functions of the Lua API)
+    VAmiga &getEmulator() { return *emulator; }
 };
 
 }

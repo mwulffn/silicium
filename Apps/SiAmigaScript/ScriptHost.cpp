@@ -107,6 +107,12 @@ ScriptHost::process(Message msg)
             if (msg.value == 0) wakeUp();
             break;
 
+        case Msg::PAUSE:
+
+            // The emulator has finished a frame (see runFrame)
+            wakeUp();
+            break;
+
         case Msg::ABORT:
 
             wakeUp();
@@ -115,6 +121,22 @@ ScriptHost::process(Message msg)
         default:
             break;
     }
+}
+
+void
+ScriptHost::runFrame()
+{
+    const auto timeout = utl::Time::seconds(10.0);
+
+    /* The emulator pauses at the end of the frame. Note that finishFrame()
+     * stops before the last line of the frame has been drawn and before the
+     * picture has been handed to the video port. Until then, the texture shows
+     * the previous frame (see MissingAPI.md).
+     */
+    emulator->finishFrame();
+    waitForWakeUp(timeout);
+
+    if (emulator->isRunning()) throw std::runtime_error("The frame did not finish");
 }
 
 }

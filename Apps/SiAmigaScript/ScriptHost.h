@@ -35,7 +35,7 @@ class ScriptHost : Wakeable {
     std::vector<string> commands;
 
     // The emulator (created when the command line has been checked, as it
-    // cannot be destroyed without having been launched)
+    // cannot be destroyed without having been launched, see MissingAPI.md)
     std::unique_ptr<VAmiga> emulator;
 
     // Return code
@@ -68,6 +68,9 @@ public:
 
     // Processes an incoming message
     void process(Message msg);
+
+    // Lets the paused emulator run until the end of the current frame
+    void runFrame();
 };
 
 }

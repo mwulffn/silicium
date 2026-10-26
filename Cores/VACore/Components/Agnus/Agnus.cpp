@@ -147,7 +147,7 @@ Agnus::operator << (SerResetter &worker)
     if (insEvent) { data[SLOT_INS] = insMask; scheduleRel <SLOT_INS> (0, insEvent); }
 
     // Beamtraps are set by an observer, too, and have to outlive a reset
-    dmaDebugger.beamtraps.scheduleNextEvent();
+    debugger.beamtraps.scheduleNextEvent();
 }
 
 i64

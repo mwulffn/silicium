@@ -51,16 +51,16 @@ ScriptHost::parseArguments(int argc, char *argv[])
 
         if (arg == "-e" || arg == "--exec") {
 
-            if (i + 1 >= argc) throw UsageError("Option '" + arg + "' needs a command");
+            if (i + 1 >= argc) throw SyntaxError("Option '" + arg + "' needs a command");
             commands.push_back(argv[++i]);
             continue;
         }
 
-        if (arg[0] == '-') throw UsageError("Invalid option '" + arg + "'");
+        if (arg[0] == '-') throw SyntaxError("Invalid option '" + arg + "'");
 
         // The only argument which is not an option is the script
-        if (keys.find("script") != keys.end()) throw UsageError("More than one script is given");
-        if (!utl::fileExists(arg)) throw UsageError("File " + arg + " does not exist");
+        if (keys.find("script") != keys.end()) throw SyntaxError("More than one script is given");
+        if (!utl::fileExists(arg)) throw SyntaxError("File " + arg + " does not exist");
         keys["script"] = arg;
     }
 }

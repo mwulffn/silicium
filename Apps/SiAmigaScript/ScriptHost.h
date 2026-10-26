@@ -20,7 +20,7 @@
 
 namespace vamiga {
 
-struct UsageError : public std::runtime_error {
+struct SyntaxError : public std::runtime_error {
     using runtime_error::runtime_error;
 };
 

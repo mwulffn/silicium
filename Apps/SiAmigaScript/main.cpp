@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
         return vamiga::ScriptHost().main(argc, argv);
 
-    } catch (vamiga::UsageError &e) {
+    } catch (vamiga::SyntaxError &e) {
 
         std::cout << "Usage: SiAmigaScript [-vm] [-e <command>]... [<script>]" << std::endl;
         std::cout << std::endl;

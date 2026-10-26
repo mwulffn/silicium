@@ -13,8 +13,9 @@
 
 namespace vamiga {
 
-// The keys of the Amiga keyboard and their raw keycodes
-static const std::map<string, KeyCode> keys = {
+// The keys of the Amiga keyboard and their raw keycodes (stored as int, as
+// MSVC warns about the conversion of the literals to KeyCode in std::pair)
+static const std::map<string, int> keys = {
 
     // Main block, top row
     { "`", 0x00 }, { "1", 0x01 }, { "2", 0x02 }, { "3", 0x03 }, { "4", 0x04 },
@@ -61,7 +62,7 @@ static const std::map<string, KeyCode> keys = {
 std::optional<KeyCode>
 keyCode(const string &name)
 {
-    if (auto it = keys.find(name); it != keys.end()) return it->second;
+    if (auto it = keys.find(name); it != keys.end()) return KeyCode(it->second);
     return std::nullopt;
 }
 

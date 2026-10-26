@@ -37,3 +37,7 @@ if(SILICIUM_BUILD_APPS)
 endif()
 
 add_subdirectory(Cores)
+
+# The scriptable Amiga backend needs neither Qt nor SDL, so it is built
+# together with the cores
+add_subdirectory(Apps/SiAmigaScript)
